@@ -4,6 +4,37 @@ from dataclass.Package import Package
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import random
+
+
+class SpaceNode:
+    def __init__(
+        self,
+        length: int,
+        width: int,
+        height: int,
+        start_corner: np.ndarray,
+    ):
+        self.length = length
+        self.width = width
+        self.height = height
+        self.position = start_corner
+        self.endcorner = start_corner + np.array([length, width, height])
+
+        self.neighbours: List[SpaceNode] = []
+        self.children: List[SpaceNode] = [None] * 8
+        self.max_vols_in_children: List[Tuple[int, float]] = [None] * 8
+
+
+class SpaceTree:
+    def __init__(
+        self,
+        uld: ULD,
+    ):
+        self.uld_no = uld.id
+        self.root = SpaceNode(
+            uld.dimensions[0], uld.dimensions[1], uld.dimensions[2], (0, 0, 0)
+        )
 
 
 # Define the ULDPacker class
@@ -21,16 +52,19 @@ class ULDPacker:
         self.max_passes = max_passes  # Set the max number of packing passes
         self.packed_positions = []  # [(package_id, uld_id, x, y, z)]
         self.unpacked_packages = []
+        self.available_spaces = [u.available_spaces for u in ulds]
 
     def _find_available_space(
         self, uld: ULD, package: Package
     ) -> Tuple[bool, np.ndarray]:
         length, width, height = package.dimensions
-        for area in uld.available_spaces:
-            x, y, z, al, aw, ah = area
-            if length <= al and width <= aw and height <= ah:
-                return True, np.array([x, y, z])
-        return False, None
+
+        # TODO CHANGE THIS
+        # for area in uld.available_spaces:
+        #     x, y, z, al, aw, ah = area
+        #     if length <= al and width <= aw and height <= ah:
+        #         return True, np.array([x, y, z])
+        # return False, None
 
     def _try_pack_package(self, package: Package, uld: ULD) -> bool:
         if package.weight + uld.current_weight > uld.weight_limit:
@@ -90,6 +124,7 @@ class ULDPacker:
         uld.available_spaces = updated_spaces
 
     def _generate_3d_plot(self):
+        tmp_color_idx = random.randint(0, 400)
         for uld in self.ulds:
             fig = plt.figure()
             ax = fig.add_subplot(111, projection="3d")
@@ -121,13 +156,13 @@ class ULDPacker:
                         [vertices[4], vertices[5], vertices[6], vertices[7]],
                     ]
 
+                    color = plt.cm.Paired(tmp_color_idx)
                     ax.add_collection3d(
                         Poly3DCollection(
                             faces,
-                            facecolors="cyan",
-                            linewidths=1,
-                            edgecolors="r",
-                            alpha=0.25,
+                            facecolors=color,
+                            edgecolors="black",
+                            alpha=0.8,
                         )
                     )
 

@@ -1,10 +1,9 @@
-import numpy as np
 import pandas as pd
 from typing import List, Tuple
+import sys
 
 from dataclass.Package import Package
-from dataclass.ULD import ULDs
-from solvers.ULDPacker import ULDPacker
+from dataclass.ULD import ULD
 
 
 # Read data from CSV
@@ -63,9 +62,9 @@ def format_output(
 
 
 # Main function
-def main():
-    uld_file = "input/ulds2.csv"
-    package_file = "input/packages2.csv"
+def main(uld_file, package_file):
+    # uld_file = "input/ulds2.csv"
+    # package_file = "input/packages2.csv"
 
     ulds, packages = read_data_from_csv(uld_file, package_file)
 
@@ -104,4 +103,18 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) <= 3:
+        print(
+            """
+Usage: main.py <solver-type> <uld-file> <package-file>
+
+Solver Types: Basic, Tree"""
+        )
+        exit(1)
+
+    if sys.argv[1] == "Basic":
+        from solvers.ULDPackerBase import ULDPacker
+    elif sys.argv[1] == "Tree":
+        from solvers.ULDPackerTree import ULDPacker
+
+    main(sys.argv[2], sys.argv[3])
