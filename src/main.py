@@ -120,7 +120,7 @@ def main(uld_file, package_file, output_dir):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) <= 4
+    if len(sys.argv) <= 4:
         print(
             """
 Usage: python main.py <solver-type> <uld-file> <package-file> <output-dir>

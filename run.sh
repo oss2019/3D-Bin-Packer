@@ -22,6 +22,8 @@ ULD_FILE=$2
 PACKAGE_FILE=$3
 OUTPUT_DIR=$4
 
+mkdir -p "$OUTPUT_DIR"
+
 # Validate solver type
 if [[ "$SOLVER_TYPE" != "BasicOverlap" && "$SOLVER_TYPE" != "BasicNonOverlap" && "$SOLVER_TYPE" != "Tree" ]]; then
     echo "Error: Invalid solver type '$SOLVER_TYPE'."
