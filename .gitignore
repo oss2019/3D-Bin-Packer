@@ -1,5 +1,5 @@
 __pycache__/
 ignore/
 tox.ini
-*.png/
+**/*.png
 *swp
