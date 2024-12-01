@@ -18,7 +18,7 @@ class ULDPacker:
         ulds: List[ULD],
         packages: List[Package],
         priority_spread_cost: int,
-        max_passes: int = 5,
+        max_passes: int = 1,
     ):
         self.ulds = ulds
         self.packages = packages
@@ -35,25 +35,32 @@ class ULDPacker:
         self, uld: ULD, package: Package
     ) -> Tuple[bool, np.ndarray]:
         length, width, height = package.dimensions
-        best_position = None
-        min_z, min_y, min_x = SIZE_BOUND, SIZE_BOUND, SIZE_BOUND
-
-        pprint.pprint(self.available_spaces[uld.id])
-        print()
-
         for area in self.available_spaces[uld.id]:
             x, y, z, al, aw, ah = area
             if length <= al and width <= aw and height <= ah:
-                # Check for minimum z, then minimum y, then minimum x
-                if (
-                    (z < min_z)
-                    or (z == min_z and y < min_y)
-                    or (z == min_z and y == min_y and x < min_x)
-                ):
-                    min_z, min_y, min_x = z, y, x
-                    best_position = np.array([x, y, z])
+                return True, np.array([x, y, z])
+        return False, None
 
-        return (True, best_position) if best_position is not None else (False, None)
+    # def _find_available_space(
+    #     self, uld: ULD, package: Package
+    # ) -> Tuple[bool, np.ndarray]:
+    #     length, width, height = package.dimensions
+    #     best_position = None
+    #     min_z = SIZE_BOUND
+    #
+    #     pprint.pprint(self.available_spaces[uld.id])
+    #     print()
+    #
+    #     for area in self.available_spaces[uld.id]:
+    #         x, y, z, al, aw, ah = area
+    #         if length <= al and width <= aw and height <= ah:
+    #             if z < min_z:
+    #                 min_z = z
+    #                 best_position = np.array([x, y, z])
+    #
+    #     if best_position is not None:
+    #         return True, best_position
+    #     return False, None
 
     def _try_pack_package(self, package: Package, uld: ULD) -> bool:
         if package.weight + uld.current_weight > uld.weight_limit:
