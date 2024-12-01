@@ -10,8 +10,8 @@ from dataclass.ULD import ULD
 def read_data_from_csv(
     uld_file: str, package_file: str
 ) -> Tuple[List[ULD], List[Package]]:
-    uld_data = pd.read_csv(uld_file)
-    package_data = pd.read_csv(package_file)
+    uld_data = pd.read_csv(uld_file, comment="#")
+    package_data = pd.read_csv(package_file, comment="#")
 
     ulds = [
         ULD(
@@ -46,6 +46,7 @@ def read_data_from_csv(
 def format_output(
     packed_positions: List[Tuple], unpacked_packages: List[Package], total_cost: int
 ) -> str:
+    invalid_soln = False
     output = "Packing Results:\n"
     output += "Packed Positions:\n"
     for package_id, uld_id, x, y, z in packed_positions:
@@ -53,11 +54,18 @@ def format_output(
 
     output += "\nUnpacked Packages:\n"
     for pkg in unpacked_packages:
-        output += (
-            f"Package {pkg.id} (Weight: {pkg.weight}kg, Delay Cost: {pkg.delay_cost})\n"
-        )
+        output += f"Package {pkg.id} (Weight: {pkg.weight}kg, Delay Cost: {pkg.delay_cost}, Priority: {pkg.is_priority})\n"
+        if pkg.is_priority:
+            invalid_soln = True
 
     output += f"\nTotal Delay Cost: {total_cost}\n"
+    if invalid_soln:
+        output += (
+            "\n"
+            + "!-!" * 17
+            + "\nSOLUTION IS INVALID AS PRIORITY PACKAGE WAS MISSED\n"
+            + "!-!" * 17
+        )
     return output
 
 

@@ -129,7 +129,12 @@ class ULDPacker:
             fig = plt.figure()
             ax = fig.add_subplot(111, projection="3d")
 
+            ax.set_xlim(0, uld.dimensions[0])
+            ax.set_ylim(0, uld.dimensions[1])
+            ax.set_zlim(0, uld.dimensions[2])
             for package_id, uld_id, x, y, z in self.packed_positions:
+                tmp_color_idx += 1
+                tmp_color_idx = tmp_color_idx % 12
                 if uld.id == uld_id:
                     package = next(pkg for pkg in self.packages if pkg.id == package_id)
                     length, width, height = package.dimensions
