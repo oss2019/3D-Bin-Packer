@@ -2,11 +2,6 @@ from typing import List, Tuple
 from dataclass.ULD import ULD
 from dataclass.Package import Package
 import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-import random
-
-import pprint
 
 SIZE_BOUND = 10000
 
@@ -32,152 +27,127 @@ class ULDPacker:
         }
 
     def _find_available_space(
-        self, uld: ULD, package: Package
+        self, uld: ULD, package: Package, policy: str
     ) -> Tuple[bool, np.ndarray]:
         length, width, height = package.dimensions
-        for area in self.available_spaces[uld.id]:
+        best_position = None
+        best_idx = None
+        min_x = SIZE_BOUND
+        min_y = SIZE_BOUND
+        min_z = SIZE_BOUND
+
+        for idx, area in enumerate(self.available_spaces[uld.id]):
             x, y, z, al, aw, ah = area
             if length <= al and width <= aw and height <= ah:
-                return True, np.array([x, y, z])
-        return False, None
+                if policy == "first_find":
+                    best_position = np.array([x, y, z])
+                    best_idx = idx
+                    break
 
-    # def _find_available_space(
-    #     self, uld: ULD, package: Package
-    # ) -> Tuple[bool, np.ndarray]:
-    #     length, width, height = package.dimensions
-    #     best_position = None
-    #     min_z = SIZE_BOUND
-    #
-    #     pprint.pprint(self.available_spaces[uld.id])
-    #     print()
-    #
-    #     for area in self.available_spaces[uld.id]:
-    #         x, y, z, al, aw, ah = area
-    #         if length <= al and width <= aw and height <= ah:
-    #             if z < min_z:
-    #                 min_z = z
-    #                 best_position = np.array([x, y, z])
-    #
-    #     if best_position is not None:
-    #         return True, best_position
-    #     return False, None
+                elif policy == "origin_bias":
+                    # Check for the best position based on min_x, min_y, and min_z
+                    if (
+                        (x < min_x)
+                        or (x == min_x and y < min_y)
+                        or (x == min_x and y == min_y and z < min_z)
+                    ):
+                        min_x = x
+                        min_y = y
+                        min_z = z
+                        best_position = np.array([x, y, z])
+                        best_idx = idx
+
+                elif policy == "min_length_sum":
+                    # Check for the best position based on sum of min_x, min_y, and min_z
+                    if min_x + min_y + min_z > x + y + z:
+                        min_x = x
+                        min_y = y
+                        min_z = z
+                        best_position = np.array([x, y, z])
+                        best_idx = idx
+
+                elif policy == "min_surface_area":
+                    # Check for the best position based on surface area
+                    if (
+                        min_x * min_y + min_y * min_z + min_z * min_x
+                        > x * y + y * z + z * x
+                    ):
+                        min_x = x
+                        min_y = y
+                        min_z = z
+                        best_position = np.array([x, y, z])
+                        best_idx = idx
+
+        if best_position is not None:
+            return True, best_position, best_idx
+        return False, None, -1
 
     def _try_pack_package(self, package: Package, uld: ULD) -> bool:
         if package.weight + uld.current_weight > uld.weight_limit:
             return False  # Exceeds weight limit
 
-        can_fit, position = self._find_available_space(uld, package)
+        can_fit, position, space_index = self._find_available_space(
+            uld, package, policy="min_surface_area"
+        )
         if can_fit:
             x, y, z = position
             length, width, height = package.dimensions
-            # uld.occupied_positions.append(np.array([x, y, z, length, width, height]))
             uld.current_weight += package.weight
             self.packed_positions.append((package.id, uld.id, x, y, z))
-            self._update_available_spaces(uld, position, package)
+            self._update_available_spaces(uld, position, package, space_index)
             return True
         return False
 
     def _update_available_spaces(
-        self, uld: ULD, position: np.ndarray, package: Package
+        self, uld: ULD, position: np.ndarray, package: Package, space_index: int
     ):
         length, width, height = package.dimensions
         x, y, z = position
 
-        updated_spaces = []
-        for space in self.available_spaces[uld.id]:
-            ax, ay, az, al, aw, ah = space
+        ax, ay, az, al, aw, ah = self.available_spaces[uld.id][space_index]
 
-            # Check for remaining free areas after packing
-            if not (
-                x + length <= ax
-                or x >= ax + al
-                or y + width <= ay
-                or y >= ay + aw
-                or z + height <= az
-                or z >= az + ah
-            ):
-                if y + width < ay + aw:
-                    updated_spaces.append(
-                        [ax, y + width, az, al, aw - (y + width - ay), ah]
-                    )
-                if y > ay:
-                    updated_spaces.append([ax, ay, az, al, y - ay, ah])
-                if x > ax:
-                    updated_spaces.append([ax, ay, az, x - ax, aw, ah])
-                if x + length < ax + al:
-                    updated_spaces.append(
-                        [x + length, ay, az, al - (x + length - ax), aw, ah]
-                    )
-                if z > az:
-                    updated_spaces.append([ax, ay, az, al, aw, z - az])
-                if z + height < az + ah:
-                    updated_spaces.append(
-                        [ax, ay, z + height, al, aw, ah - (z + height - az)]
-                    )
-            else:
-                updated_spaces.append(space)
+        # 7 - cut
+        # space2 = (ax + length, ay, az, al - length, width, height)
+        # space3 = (ax + length, ay + width, az, al - length, aw - width, height)
+        # space4 = (ax, ay + width, az, length, aw - width, height)
+        # space5 = (ax, ay, az + height, length, width, ah - height)
+        # space6 = (ax + length, ay, az, al - length, width, ah - height)
+        # space7 = (ax + length, ay + width, az, al - length, aw - width, ah - height)
+        # space8 = (ax, ay + width, az, length, aw - width, ah - height)
 
-        self.available_spaces[uld.id] = updated_spaces
+        # self.available_spaces[uld.id] += [space2, space3, space4, space5, space6, space7, space8]
 
-    def _generate_3d_plot(self):
-        tmp_color_idx = random.randint(0, 400)
-        for uld in self.ulds:
-            fig = plt.figure()
-            ax = fig.add_subplot(111, projection="3d")
+        # 4 - cut Bias: column-verticals
+        # space2 = (ax, ay, az + height, length, width, ah - height)
+        # space3 = (ax + length, ay, az, al - length, width, ah)
+        # space4 = (ax + length, ay + width, az, al - length, aw - width, ah)
+        # space5 = (ax, ay + width, az, length, aw - width, ah)
 
-            ax.set_xlim(0, uld.dimensions[0])
-            ax.set_ylim(0, uld.dimensions[1])
-            ax.set_zlim(0, uld.dimensions[2])
-            for package_id, uld_id, x, y, z in self.packed_positions:
-                tmp_color_idx += 1
-                tmp_color_idx = tmp_color_idx % 12
-                if uld.id == uld_id:
-                    package = next(pkg for pkg in self.packages if pkg.id == package_id)
-                    length, width, height = package.dimensions
+        # self.available_spaces[uld.id] += [space2, space3, space54, space5]
 
-                    # Create vertices for the package
-                    vertices = [
-                        [x, y, z],
-                        [x + length, y, z],
-                        [x + length, y + width, z],
-                        [x, y + width, z],
-                        [x, y, z + height],
-                        [x + length, y, z + height],
-                        [x + length, y + width, z + height],
-                        [x, y + width, z + height],
-                    ]
+        # 3 - cut Bias: front small, left horizontal full, top full
+        space2 = (ax + length, ay, az, al - length, aw, height)
+        space3 = (ax, ay + width, az, length, aw - width, height)
+        space4 = (ax, ay, az + height, al, aw, ah - height)
 
-                    # Define the faces of the package
-                    faces = [
-                        [vertices[0], vertices[1], vertices[5], vertices[4]],
-                        [vertices[1], vertices[2], vertices[6], vertices[5]],
-                        [vertices[2], vertices[3], vertices[7], vertices[6]],
-                        [vertices[3], vertices[0], vertices[4], vertices[7]],
-                        [vertices[0], vertices[1], vertices[2], vertices[3]],
-                        [vertices[4], vertices[5], vertices[6], vertices[7]],
-                    ]
+        # 3 - cut Bias: left small, front horizontal full, top full
+        # space2 = (ax + length, ay, az, al - length, width, height)
+        # space3 = (ax, ay + width, az, ax, aw - width, height)
+        # space4 = (ax, ay, az + height, al, aw, ah - height)
 
-                    color = plt.cm.Paired(tmp_color_idx)
-                    ax.add_collection3d(
-                        Poly3DCollection(
-                            faces,
-                            facecolors=color,
-                            edgecolors="black",
-                            alpha=0.8,
-                        )
-                    )
+        # 3 - cut Bias: top small, front full, left column
+        # space2 = (ax, ay, az + height, length, width, ah - height)
+        # space3 = (ax + length, ay, az, al - length, aw, ah)
+        # space4 = (ax, ay + width, az, length, aw - width, ah)
 
-            ax.set_xlabel("X")
-            ax.set_ylabel("Y")
-            ax.set_zlabel("Z")
-            ax.set_title(f"Packed ULD {uld.id}")
-            ax.set_xlim(0, uld.dimensions[0])
-            ax.set_ylim(0, uld.dimensions[1])
-            ax.set_zlim(0, uld.dimensions[2])
+        # 3 - cut Bias: top small, left full, front column
+        # space2 = (ax, ay, az + height, length, width, ah - height)
+        # space3 = (ax + length, ay, az, al - length, width, ah)
+        # space4 = (ax, ay + width, az, al, aw - width, ah)
 
-            # Save the 3D plot as an image
-            plt.savefig(f"packed_uld_{uld.id}.png")
-            plt.show()
+        self.available_spaces[uld.id] += [space2, space3, space4]
+
+        self.available_spaces[uld.id].pop(space_index)
 
     def pack(self):
         priority_packages = sorted(

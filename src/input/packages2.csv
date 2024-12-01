@@ -1,9 +1,10 @@
 Package Identifier,Length (cm),Width (cm),Height (cm),Weight (kg),Type (P/E),Cost of Delay
-P-1,50,40,40,50,Priority,-
-P-2,50,40,40,50,Priority,-
-P-5,50,40,40,50,Priority,-
-P-6,50,40,40,50,Priority,-
-P-7,50,40,340,50,Priority,-
+P-1,100,50,100,50,Priority,-
+P-2,100,50,43,50,Priority,-
+P-3,100,50,50,50,Priority,-
+# P-5,50,40,40,50,Priority,-
+# P-6,50,40,40,50,Priority,-
+# P-7,50,40,340,50,Priority,-
 # P-8,50,40,30,50,Priority,-
 # P-9,50,40,30,50,Priority,-
 # P-10,50,40,30,50,Priority,-

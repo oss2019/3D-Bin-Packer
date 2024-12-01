@@ -4,6 +4,7 @@ import sys
 
 from dataclass.Package import Package
 from dataclass.ULD import ULD
+from helpers.plot_images import generate_3d_plot
 
 
 # Read data from CSV
@@ -92,21 +93,27 @@ def main(uld_file, package_file):
         for error in validation_errors:
             print(f"Error: {error}")
     else:
-        print("Packing validated successfully!")
+        print("Packing validated successfully! No overlaps")
 
     # Generate 3D plots for ULDs
-    packer._generate_3d_plot()
+    generate_3d_plot(packer)
 
     # Format and print output
     output = format_output(packed_positions, unpacked_packages, total_cost)
     print(output)
 
     print("\nPacking Statistics:")
-    print(f"Total packages: {len(packages)}")
-    print(f"Packed packages: {len(packed_positions)}")
-    print(f"Unpacked packages: {len(unpacked_packages)}")
-    print(f"Priority packages: {sum(1 for p in packages if p.is_priority)}")
-    print(f"ULDs used: {len(set(pos[1] for pos in packed_positions))}")
+    print(f"Total packages          : {len(packages)}")
+    print(f"Packed packages         : {len(packed_positions)}")
+    print(f"Unpacked packages       : {len(unpacked_packages)}")
+    print(f"Total Priority packages : {sum(1 for p in packages if p.is_priority)}")
+    print(
+        f"Unpacked Priority pkgs  : {sum(1 for p in unpacked_packages if p.is_priority)}"
+    )
+    print(
+        f"Unpacked Economy pkgs   : {sum(1 for p in unpacked_packages if not p.is_priority)}"
+    )
+    print(f"ULDs used               : {len(set(pos[1] for pos in packed_positions))}")
     print(f"Total cost: {total_cost:.2f}")
 
 
@@ -116,13 +123,26 @@ if __name__ == "__main__":
             """
 Usage: main.py <solver-type> <uld-file> <package-file>
 
-Solver Types: Basic, Tree"""
+Supported Solver Types:
+  - BasicOverlap
+  - BasicNonOverlap (not working for Priority 100% packing),
+  - Tree"""
         )
         exit(1)
 
-    if sys.argv[1] == "Basic":
-        from solvers.ULDPackerBase import ULDPacker
+    if sys.argv[1] == "BasicOverlap":
+        from solvers.ULDPackerBasicOverlap import ULDPacker
+    elif sys.argv[1] == "BasicNonOverlap":
+        from solvers.ULDPackerBasicNonOverlap import ULDPacker
     elif sys.argv[1] == "Tree":
         from solvers.ULDPackerTree import ULDPacker
+    else:
+        print(
+            """Supported Solver Types:
+  - BasicOverlap
+  - BasicNonOverlap (not working for Priority 100% packing),
+  - Tree"""
+        )
+        exit(1)
 
     main(sys.argv[2], sys.argv[3])

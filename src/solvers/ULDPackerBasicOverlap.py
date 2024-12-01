@@ -3,35 +3,7 @@ from dataclass.ULD import ULD
 from dataclass.Package import Package
 import numpy as np
 
-
-class SpaceNode:
-    def __init__(
-        self,
-        length: int,
-        width: int,
-        height: int,
-        start_corner: np.ndarray,
-    ):
-        self.length = length
-        self.width = width
-        self.height = height
-        self.position = start_corner
-        self.endcorner = start_corner + np.array([length, width, height])
-
-        self.neighbours: List[SpaceNode] = []
-        self.children: List[SpaceNode] = [None] * 8
-        self.max_vols_in_children: List[Tuple[int, float]] = [None] * 8
-
-
-class SpaceTree:
-    def __init__(
-        self,
-        uld: ULD,
-    ):
-        self.uld_no = uld.id
-        self.root = SpaceNode(
-            uld.dimensions[0], uld.dimensions[1], uld.dimensions[2], (0, 0, 0)
-        )
+SIZE_BOUND = 10000
 
 
 # Define the ULDPacker class
@@ -49,43 +21,92 @@ class ULDPacker:
         self.max_passes = max_passes  # Set the max number of packing passes
         self.packed_positions = []  # [(package_id, uld_id, x, y, z)]
         self.unpacked_packages = []
-        self.available_spaces = [u.available_spaces for u in ulds]
+        self.available_spaces = {
+            u.id: [(0, 0, 0, u.dimensions[0], u.dimensions[1], u.dimensions[2])]
+            for u in self.ulds
+        }
 
     def _find_available_space(
-        self, uld: ULD, package: Package
+        self, uld: ULD, package: Package, policy: str
     ) -> Tuple[bool, np.ndarray]:
         length, width, height = package.dimensions
+        best_position = None
+        best_idx = None
+        min_x = SIZE_BOUND
+        min_y = SIZE_BOUND
+        min_z = SIZE_BOUND
 
-        # TODO CHANGE THIS
-        # for area in uld.available_spaces:
-        #     x, y, z, al, aw, ah = area
-        #     if length <= al and width <= aw and height <= ah:
-        #         return True, np.array([x, y, z])
-        # return False, None
+        for idx, area in enumerate(self.available_spaces[uld.id]):
+            x, y, z, al, aw, ah = area
+            if length <= al and width <= aw and height <= ah:
+                if policy == "first_find":
+                    best_position = np.array([x, y, z])
+                    best_idx = idx
+                    break
+
+                elif policy == "origin_bias":
+                    # Check for the best position based on min_x, min_y, and min_z
+                    if (
+                        (x < min_x)
+                        or (x == min_x and y < min_y)
+                        or (x == min_x and y == min_y and z < min_z)
+                    ):
+                        min_x = x
+                        min_y = y
+                        min_z = z
+                        best_position = np.array([x, y, z])
+                        best_idx = idx
+
+                elif policy == "min_length_sum":
+                    # Check for the best position based on sum of min_x, min_y, and min_z
+                    if min_x + min_y + min_z > x + y + z:
+                        min_x = x
+                        min_y = y
+                        min_z = z
+                        best_position = np.array([x, y, z])
+                        best_idx = idx
+
+                elif policy == "min_surface_area":
+                    # Check for the best position based on surface area
+                    if (
+                        min_x * min_y + min_y * min_z + min_z * min_x
+                        > x * y + y * z + z * x
+                    ):
+                        min_x = x
+                        min_y = y
+                        min_z = z
+                        best_position = np.array([x, y, z])
+                        best_idx = idx
+
+        if best_position is not None:
+            return True, best_position, best_idx
+        return False, None, -1
 
     def _try_pack_package(self, package: Package, uld: ULD) -> bool:
         if package.weight + uld.current_weight > uld.weight_limit:
             return False  # Exceeds weight limit
 
-        can_fit, position = self._find_available_space(uld, package)
+        can_fit, position, space_index = self._find_available_space(
+            uld, package, policy="first_find"
+        )
         if can_fit:
             x, y, z = position
             length, width, height = package.dimensions
-            uld.occupied_positions.append(np.array([x, y, z, length, width, height]))
             uld.current_weight += package.weight
             self.packed_positions.append((package.id, uld.id, x, y, z))
-            self._update_available_spaces(uld, position, package)
+            self._update_available_spaces(uld, position, package, space_index)
             return True
         return False
 
     def _update_available_spaces(
-        self, uld: ULD, position: np.ndarray, package: Package
+        self, uld: ULD, position: np.ndarray, package: Package, space_index: int
     ):
         length, width, height = package.dimensions
         x, y, z = position
 
+        # Overlap cut
         updated_spaces = []
-        for space in uld.available_spaces:
+        for space in self.available_spaces[uld.id]:
             ax, ay, az, al, aw, ah = space
 
             # Check for remaining free areas after packing
@@ -97,30 +118,49 @@ class ULDPacker:
                 or z + height <= az
                 or z >= az + ah
             ):
-                if y + width <= ay + aw:
-                    updated_spaces.append(
-                        [ax, y + width, az, al, aw - (y + width - ay), ah]
-                    )
-                if y > ay:
-                    updated_spaces.append([ax, ay, az, al, y - ay, ah])
-                if x > ax:
-                    updated_spaces.append([ax, ay, az, x - ax, aw, ah])
-                if x + length <= ax + al:
-                    updated_spaces.append(
-                        [x + length, ay, az, al - (x + length - ax), aw, ah]
-                    )
-                if z > az:
-                    updated_spaces.append([ax, ay, az, al, aw, z - az])
-                if z + height <= az + ah:
-                    updated_spaces.append(
-                        [ax, ay, z + height, al, aw, ah - (z + height - az)]
-                    )
+                space1 = [ax, y + width, az, al, aw - (y + width - ay), ah]  # Left full
+                space2 = [ax, ay, az, al, y - ay, ah]  # Right full
+                space3 = [ax, ay, az, x - ax, aw, ah]  # Back full
+                # Front full
+                space4 = [x + length, ay, az, al - (x + length - ax), aw, ah]
+                space5 = [ax, ay, az, al, aw, z - az]  # Above full
+                # Down full
+                space6 = [ax, ay, z + height, al, aw, ah - (z + height - az)]
+
+                if y + width < ay + aw or all(v != 0 for v in space1):
+                    updated_spaces.append(space1)
+                    # print(f"Appending {space1}")
+
+                if y > ay or all(v != 0 for v in space2):
+                    updated_spaces.append(space2)
+                    # print(f"Appending {space2}")
+
+                if x > ax or all(v != 0 for v in space3):
+                    updated_spaces.append(space3)
+                    # print(f"Appending {space3}")
+
+                if x + length < ax + al or all(v != 0 for v in space4):
+                    updated_spaces.append(space4)
+                    # print(f"Appending {space4}")
+
+                if z > az or all(v != 0 for v in space5):
+                    updated_spaces.append(space5)
+                    # print(f"Appending {space5}")
+
+                if z + height < az + ah or all(v != 0 for v in space6):
+                    updated_spaces.append(space6)
+                    # print(f"Appending {space6}")
+
             else:
                 updated_spaces.append(space)
 
-        uld.available_spaces = updated_spaces
+        self.available_spaces[uld.id] = updated_spaces
 
     def pack(self):
+        # WARNING remove this n_packs vairable its for logging
+
+        n_packs = 0
+
         priority_packages = sorted(
             [pkg for pkg in self.packages if pkg.is_priority],
             key=lambda p: p.delay_cost,
@@ -138,6 +178,9 @@ class ULDPacker:
             for uld in self.ulds:
                 if self._try_pack_package(package, uld):
                     packed = True
+                    # WARNING remove this print later
+                    n_packs += 1
+                    print(f"Packed {package.id} in {uld.id}, {n_packs}")
                     break
             if not packed:
                 self.unpacked_packages.append(package)
