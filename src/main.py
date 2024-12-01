@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import pandas as pd
 from typing import List, Tuple
 import sys
@@ -71,7 +73,7 @@ def format_output(
 
 
 # Main function
-def main(uld_file, package_file):
+def main(uld_file, package_file, output_dir):
     # uld_file = "input/ulds2.csv"
     # package_file = "input/packages2.csv"
 
@@ -96,7 +98,7 @@ def main(uld_file, package_file):
         print("Packing validated successfully! No overlaps")
 
     # Generate 3D plots for ULDs
-    generate_3d_plot(packer)
+    generate_3d_plot(packer, output_dir)
 
     # Format and print output
     output = format_output(packed_positions, unpacked_packages, total_cost)
@@ -118,10 +120,10 @@ def main(uld_file, package_file):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) <= 3:
+    if len(sys.argv) <= 4
         print(
             """
-Usage: main.py <solver-type> <uld-file> <package-file>
+Usage: python main.py <solver-type> <uld-file> <package-file> <output-dir>
 
 Supported Solver Types:
   - BasicOverlap
@@ -145,4 +147,4 @@ Supported Solver Types:
         )
         exit(1)
 
-    main(sys.argv[2], sys.argv[3])
+    main(sys.argv[2], sys.argv[3], sys.argv[4])

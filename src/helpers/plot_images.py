@@ -5,7 +5,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 # warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 
 
-def generate_3d_plot(packer_instance):
+def generate_3d_plot(packer_instance, output_dir):
     for uld in packer_instance.ulds:
         fig = plt.figure()
         ax = fig.add_subplot(111, projection="3d")
@@ -69,5 +69,5 @@ def generate_3d_plot(packer_instance):
         ax.view_init(elev=35, azim=45)  # Looking at (0,0,0) from ~(1,1,1)
 
         # Save the 3D plot as an image
-        plt.savefig(f"packed_uld_{uld.id}.png")
+        plt.savefig(f"{output_dir}/packed_uld_{uld.id}.png")
         plt.show()
