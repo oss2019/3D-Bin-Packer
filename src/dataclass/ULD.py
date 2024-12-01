@@ -10,4 +10,3 @@ class ULD:
         self.dimensions = np.array([length, width, height])
         self.weight_limit = weight_limit
         self.current_weight = 0
-        self.occupied_positions = []  # List of occupied spaces (x, y, z, length, width, height)
