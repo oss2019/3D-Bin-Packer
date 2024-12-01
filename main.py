@@ -3,7 +3,6 @@ import pandas as pd
 from typing import List, Tuple
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-from itertools import permutations
 
 # Define the ULD class
 class ULD:
@@ -15,7 +14,6 @@ class ULD:
         self.occupied_positions = []  # List of occupied spaces (x, y, z, length, width, height)
         self.available_spaces = [(0, 0, 0, length, width, height)]  # List of available spaces
 
-
 # Define the Package class
 class Package:
     def __init__(self, id: str, length: int, width: int, height: int, weight: int, is_priority: bool, delay_cost: int):
@@ -25,30 +23,13 @@ class Package:
         self.is_priority = is_priority
         self.delay_cost = delay_cost
 
-    def get_rotations(self) -> List[np.ndarray]:
-        """Generate all possible rotations of the package"""
-        return [np.array([l, w, h]) for l, w, h in permutations(self.dimensions)]
-
-    def best_rotation(self, available_space: Tuple[int, int, int, int, int, int]) -> np.ndarray:
-        """Select the best rotation with minimal surface area exposed"""
-        best_rotation = None
-        min_surface_area = float('inf')
-        for rotation in self.get_rotations():
-            l, w, h = rotation
-            if l <= available_space[3] and w <= available_space[4] and h <= available_space[5]:
-                surface_area = 2 * (l * w + w * h + h * l)  # Surface area of the package
-                if surface_area < min_surface_area:
-                    min_surface_area = surface_area
-                    best_rotation = rotation
-        return best_rotation
-
-
 # Define the ULDPacker class
 class ULDPacker:
-    def __init__(self, ulds: List[ULD], packages: List[Package], priority_spread_cost: int):
+    def __init__(self, ulds: List[ULD], packages: List[Package], priority_spread_cost: int, max_passes: int = 5):
         self.ulds = ulds
         self.packages = packages
         self.priority_spread_cost = priority_spread_cost
+        self.max_passes = max_passes  # Set the max number of packing passes
         self.packed_positions = []  # [(package_id, uld_id, x, y, z)]
         self.unpacked_packages = []
 
@@ -150,31 +131,6 @@ class ULDPacker:
             plt.savefig(f'packed_uld_{uld.id}.png')
             plt.show()
 
-    def _group_pack(self):
-        """Cluster small packages together into blocks for efficient packing"""
-        sorted_packages = sorted(self.packages, key=lambda p: (p.dimensions[0], p.dimensions[1], p.dimensions[2]))
-        grouped_packages = []
-
-        # Group packages by similar dimensions
-        temp_group = []
-        last_dim = None
-        for pkg in sorted_packages:
-            if last_dim is None or np.all(pkg.dimensions == last_dim):
-                temp_group.append(pkg)
-            else:
-                grouped_packages.append(temp_group)
-                temp_group = [pkg]
-            last_dim = pkg.dimensions
-
-        if temp_group:
-            grouped_packages.append(temp_group)
-
-        # Try to pack each block of grouped packages
-        for group in grouped_packages:
-            uld = self.ulds[0]  # Start with the first ULD, could also optimize further
-            # Add logic to pack the block into ULD
-            # To be expanded...
-            
     def pack(self):
         priority_packages = sorted(
             [pkg for pkg in self.packages if pkg.is_priority], key=lambda p: p.delay_cost, reverse=True
@@ -183,30 +139,36 @@ class ULDPacker:
             [pkg for pkg in self.packages if not pkg.is_priority], key=lambda p: p.delay_cost, reverse=True
         )
 
+        # First pass - initial packing
         for package in priority_packages + economy_packages:
             packed = False
             for uld in self.ulds:
-                # Try all rotations to fit the best one
-                rotations = package.get_rotations()
-                for rotation in rotations:
-                    package.dimensions = rotation
-                    if self._try_pack_package(package, uld):
-                        packed = True
-                        break
-                if packed:
+                if self._try_pack_package(package, uld):
+                    packed = True
                     break
             if not packed:
                 self.unpacked_packages.append(package)
 
-        # Apply Group Packing after individual packing
-        self._group_pack()
+        # Multi-pass strategy to optimize packing
+        for pass_num in range(self.max_passes - 1):  # Exclude first pass
+            # Try to repack packages into available spaces
+            for package in self.unpacked_packages:
+                packed = False
+                for uld in self.ulds:
+                    if self._try_pack_package(package, uld):
+                        packed = True
+                        break
+                if packed:
+                    self.unpacked_packages.remove(package)
 
         total_delay_cost = sum(pkg.delay_cost for pkg in self.unpacked_packages)
-        priority_spread_cost = len(set([pos[1] for pos in self.packed_positions])) * self.priority_spread_cost
+        priority_spread_cost = self.priority_spread_cost * len(
+            {uld_id for _, uld_id, *_ in self.packed_positions if any(p.id == _ and p.is_priority for p in self.packages)}
+        )
         total_cost = total_delay_cost + priority_spread_cost
 
         return self.packed_positions, self.unpacked_packages, total_cost
-
+    
     def validate_packing(self) -> Tuple[bool, List[str]]:
         """Validate the packing process"""
         validation_errors = []
@@ -245,6 +207,58 @@ class ULDPacker:
         is_valid = len(validation_errors) == 0
         return is_valid, validation_errors
 
+    def count_priority_packages_in_uld(self):
+        priority_count_per_uld = {}
+        for package_id, uld_id, _, _, _ in self.packed_positions:
+            package = next(pkg for pkg in self.packages if pkg.id == package_id)
+            if package.is_priority:
+                if uld_id not in priority_count_per_uld:
+                    priority_count_per_uld[uld_id] = 0
+                priority_count_per_uld[uld_id] += 1
+        return priority_count_per_uld
+
+
+# Read data from CSV
+def read_data_from_csv(uld_file: str, package_file: str) -> Tuple[List[ULD], List[Package]]:
+    uld_data = pd.read_csv(uld_file)
+    package_data = pd.read_csv(package_file)
+
+    ulds = [
+        ULD(id=row['ULD Identifier'], length=row['Length (cm)'], width=row['Width (cm)'],
+            height=row['Height (cm)'], weight_limit=row['Weight Limit (kg)'])
+        for _, row in uld_data.iterrows()
+    ]
+
+    packages = [
+        Package(
+            id=row['Package Identifier'],
+            length=row['Length (cm)'],
+            width=row['Width (cm)'],
+            height=row['Height (cm)'],
+            weight=row['Weight (kg)'],
+            is_priority=row['Type (P/E)'] == 'Priority',
+            delay_cost=int(row['Cost of Delay']) if str(row['Cost of Delay']).isdigit() else 0
+        )
+        for _, row in package_data.iterrows()
+    ]
+
+    return ulds, packages
+
+
+# Format and print the output
+def format_output(packed_positions: List[Tuple], unpacked_packages: List[Package], total_cost: int) -> str:
+    output = "Packing Results:\n"
+    output += "Packed Positions:\n"
+    for package_id, uld_id, x, y, z in packed_positions:
+        output += f"Package {package_id} in ULD {uld_id} at position ({x}, {y}, {z})\n"
+
+    output += "\nUnpacked Packages:\n"
+    for pkg in unpacked_packages:
+        output += f"Package {pkg.id} (Weight: {pkg.weight}kg, Delay Cost: {pkg.delay_cost})\n"
+
+    output += f"\nTotal Delay Cost: {total_cost}\n"
+    return output
+
 
 # Main function
 def main():
@@ -256,7 +270,7 @@ def main():
     # Define priority spread cost
     priority_spread_cost = 10
 
-    # Initialize the ULDPacker
+    # Initialize the ULDPacker with multiple passes
     packer = ULDPacker(ulds, packages, priority_spread_cost)
 
     # Start packing
