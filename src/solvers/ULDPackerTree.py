@@ -44,7 +44,7 @@ class ULDPacker:
         ulds: List[ULD],
         packages: List[Package],
         priority_spread_cost: int,
-        max_passes: int = 5,
+        max_passes: int = 1,
     ):
         self.ulds = ulds
         self.packages = packages
@@ -100,7 +100,7 @@ class ULDPacker:
                 or z + height <= az
                 or z >= az + ah
             ):
-                if y + width < ay + aw:
+                if y + width <= ay + aw:
                     updated_spaces.append(
                         [ax, y + width, az, al, aw - (y + width - ay), ah]
                     )
@@ -108,13 +108,13 @@ class ULDPacker:
                     updated_spaces.append([ax, ay, az, al, y - ay, ah])
                 if x > ax:
                     updated_spaces.append([ax, ay, az, x - ax, aw, ah])
-                if x + length < ax + al:
+                if x + length <= ax + al:
                     updated_spaces.append(
                         [x + length, ay, az, al - (x + length - ax), aw, ah]
                     )
                 if z > az:
                     updated_spaces.append([ax, ay, az, al, aw, z - az])
-                if z + height < az + ah:
+                if z + height <= az + ah:
                     updated_spaces.append(
                         [ax, ay, z + height, al, aw, ah - (z + height - az)]
                     )

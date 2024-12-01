@@ -11,6 +11,3 @@ class ULD:
         self.weight_limit = weight_limit
         self.current_weight = 0
         self.occupied_positions = []  # List of occupied spaces (x, y, z, length, width, height)
-        self.available_spaces = [
-            (0, 0, 0, length, width, height)
-        ]  # List of available spaces

@@ -6,6 +6,10 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import random
 
+import pprint
+
+SIZE_BOUND = 10000
+
 
 # Define the ULDPacker class
 class ULDPacker:
@@ -22,15 +26,40 @@ class ULDPacker:
         self.max_passes = max_passes  # Set the max number of packing passes
         self.packed_positions = []  # [(package_id, uld_id, x, y, z)]
         self.unpacked_packages = []
+        self.available_spaces = {
+            u.id: [(0, 0, 0, u.dimensions[0], u.dimensions[1], u.dimensions[2])]
+            for u in self.ulds
+        }
+
+    # def _find_available_space(
+    #     self, uld: ULD, package: Package
+    # ) -> Tuple[bool, np.ndarray]:
+    #     length, width, height = package.dimensions
+    #     for area in self.available_spaces[uld.id]:
+    #         x, y, z, al, aw, ah = area
+    #         if length <= al and width <= aw and height <= ah:
+    #             return True, np.array([x, y, z])
+    #     return False, None
 
     def _find_available_space(
         self, uld: ULD, package: Package
     ) -> Tuple[bool, np.ndarray]:
         length, width, height = package.dimensions
-        for area in uld.available_spaces:
+        best_position = None
+        min_z = SIZE_BOUND
+
+        pprint.pprint(self.available_spaces[uld.id])
+        print()
+
+        for area in self.available_spaces[uld.id]:
             x, y, z, al, aw, ah = area
             if length <= al and width <= aw and height <= ah:
-                return True, np.array([x, y, z])
+                if z < min_z:
+                    min_z = z
+                    best_position = np.array([x, y, z])
+
+        if best_position is not None:
+            return True, best_position
         return False, None
 
     def _try_pack_package(self, package: Package, uld: ULD) -> bool:
@@ -41,7 +70,7 @@ class ULDPacker:
         if can_fit:
             x, y, z = position
             length, width, height = package.dimensions
-            uld.occupied_positions.append(np.array([x, y, z, length, width, height]))
+            # uld.occupied_positions.append(np.array([x, y, z, length, width, height]))
             uld.current_weight += package.weight
             self.packed_positions.append((package.id, uld.id, x, y, z))
             self._update_available_spaces(uld, position, package)
@@ -55,7 +84,7 @@ class ULDPacker:
         x, y, z = position
 
         updated_spaces = []
-        for space in uld.available_spaces:
+        for space in self.available_spaces[uld.id]:
             ax, ay, az, al, aw, ah = space
 
             # Check for remaining free areas after packing
@@ -88,7 +117,7 @@ class ULDPacker:
             else:
                 updated_spaces.append(space)
 
-        uld.available_spaces = updated_spaces
+        self.available_spaces[uld.id] = updated_spaces
 
     def _generate_3d_plot(self):
         tmp_color_idx = random.randint(0, 400)

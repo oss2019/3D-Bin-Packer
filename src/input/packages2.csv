@@ -1,16 +1,16 @@
 Package Identifier,Length (cm),Width (cm),Height (cm),Weight (kg),Type (P/E),Cost of Delay
-P-1,50,40,30,50,Priority,-
-P-2,50,40,30,50,Priority,-
-P-5,50,40,30,50,Priority,-
-P-6,50,40,30,50,Priority,-
-P-7,50,40,30,50,Priority,-
-P-8,50,40,30,50,Priority,-
-P-9,50,40,30,50,Priority,-
-P-10,50,40,30,50,Priority,-
-P-11,50,40,30,50,Priority,-
-P-12,70,40,50,100,Priority,-
-P-13,70,40,50,100,Priority,-
-P-14,70,40,50,100,Priority,-
-P-15,70,40,50,100,Priority,-
-P-3,70,40,50,150,Economy,20
-P-4,70,40,50,150,Economy,30
+P-1,50,40,40,50,Priority,-
+P-2,50,40,40,50,Priority,-
+P-5,50,40,40,50,Priority,-
+P-6,50,40,40,50,Priority,-
+P-7,50,40,340,50,Priority,-
+# P-8,50,40,30,50,Priority,-
+# P-9,50,40,30,50,Priority,-
+# P-10,50,40,30,50,Priority,-
+# P-11,50,40,30,50,Priority,-
+# P-12,70,40,50,100,Priority,-
+# P-13,70,40,50,100,Priority,-
+# P-14,70,40,50,100,Priority,-
+# P-15,70,40,50,100,Priority,-
+# P-3,70,40,50,150,Economy,20
+# P-4,70,40,50,150,Economy,30
