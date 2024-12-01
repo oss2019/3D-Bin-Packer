@@ -7,7 +7,7 @@ import sys
 from dataclass.Package import Package
 from dataclass.ULD import ULD
 from helpers.plot_images import generate_3d_plot
-
+from helpers.visualize import visualize_3d_packing
 
 # Read data from CSV
 def read_data_from_csv(
@@ -98,7 +98,8 @@ def main(uld_file, package_file, output_dir):
         print("Packing validated successfully! No overlaps")
 
     # Generate 3D plots for ULDs
-    generate_3d_plot(packer, output_dir)
+    # generate_3d_plot(packer, output_dir)
+    visualize_3d_packing(packer)
 
     # Format and print output
     output = format_output(packed_positions, unpacked_packages, total_cost)
