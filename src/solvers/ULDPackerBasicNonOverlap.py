@@ -32,9 +32,20 @@ class ULDPacker:
         length, width, height = package.dimensions
         best_position = None
         best_idx = None
-        min_x = SIZE_BOUND
-        min_y = SIZE_BOUND
-        min_z = SIZE_BOUND
+        if policy != "max_surface_area" and policy != "max_volume":
+            best_x = SIZE_BOUND
+            best_y = SIZE_BOUND
+            best_z = SIZE_BOUND
+
+            best_surface_area = SIZE_BOUND**2
+            best_volume = SIZE_BOUND**3
+        else:
+            best_x = 0
+            best_y = 0
+            best_z = 0
+
+            best_surface_area = 0
+            best_volume = 0
 
         for idx, area in enumerate(self.available_spaces[uld.id]):
             x, y, z, al, aw, ah = area
@@ -45,36 +56,52 @@ class ULDPacker:
                     break
 
                 elif policy == "origin_bias":
-                    # Check for the best position based on min_x, min_y, and min_z
+                    # Check for the best position based on best_x, best_y, and best_z
                     if (
-                        (x < min_x)
-                        or (x == min_x and y < min_y)
-                        or (x == min_x and y == min_y and z < min_z)
+                        (x < best_x)
+                        or (x == best_x and y < best_y)
+                        or (x == best_x and y == best_y and z < best_z)
                     ):
-                        min_x = x
-                        min_y = y
-                        min_z = z
+                        best_x = x
+                        best_y = y
+                        best_z = z
                         best_position = np.array([x, y, z])
                         best_idx = idx
 
                 elif policy == "min_length_sum":
-                    # Check for the best position based on sum of min_x, min_y, and min_z
-                    if min_x + min_y + min_z > x + y + z:
-                        min_x = x
-                        min_y = y
-                        min_z = z
+                    # Check for the best position based on sum of best_x, best_y, and best_z
+                    if best_x + best_y + best_z > x + y + z:
+                        best_x = x
+                        best_y = y
+                        best_z = z
                         best_position = np.array([x, y, z])
                         best_idx = idx
 
                 elif policy == "min_surface_area":
                     # Check for the best position based on surface area
-                    if (
-                        min_x * min_y + min_y * min_z + min_z * min_x
-                        > x * y + y * z + z * x
-                    ):
-                        min_x = x
-                        min_y = y
-                        min_z = z
+                    if best_surface_area > al * aw + aw + ah + ah * al:
+                        best_surface_area = al * aw + aw + ah + ah * al
+                        best_position = np.array([x, y, z])
+                        best_idx = idx
+
+                elif policy == "max_surface_area":
+                    # Check for the best position based on surface area
+                    if best_surface_area < al * aw + aw + ah + ah * al:
+                        best_surface_area = al * aw + aw + ah + ah * al
+                        best_position = np.array([x, y, z])
+                        best_idx = idx
+
+                elif policy == "min_volume":
+                    # Check for the best position based on surface area
+                    if best_volume > al * aw * ah:
+                        best_volume = al * aw * ah
+                        best_position = np.array([x, y, z])
+                        best_idx = idx
+
+                elif policy == "max_volume":
+                    # Check for the best position based on surface area
+                    if best_volume < al * aw * ah:
+                        best_volume = al * aw * ah
                         best_position = np.array([x, y, z])
                         best_idx = idx
 
@@ -87,7 +114,7 @@ class ULDPacker:
             return False  # Exceeds weight limit
 
         can_fit, position, space_index = self._find_available_space(
-            uld, package, policy="min_surface_area"
+            uld, package, policy="max_volume"
         )
         if can_fit:
             x, y, z = position
