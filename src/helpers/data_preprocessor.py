@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 import sys
 
 # Usage check
-if len(sys.argv) != 4:
+if len(sys.argv) != 5:
     print(
-        "Usage: python script.py <input_csv_file> <output_image_file> <number-of-bins>"
+        "Usage: python script.py <input_csv_file> <output_image_file> <number-of-bins> <Weight(W)/Density(D)>"
     )
     sys.exit(1)
 
@@ -21,40 +21,51 @@ total_weight = priority_packages["Weight (kg)"].sum()
 
 # Calculate total volume of priority packages
 # Volume = Length * Width * Height
-priority_packages["Volume (cm^3)"] = (
-    priority_packages["Length (cm)"]
-    * priority_packages["Width (cm)"]
-    * priority_packages["Height (cm)"]
+priority_packages["Volume (m^3)"] = (
+    priority_packages["Length (cm)"]/100
+    * priority_packages["Width (cm)"]/100
+    * priority_packages["Height (cm)"]/100
 )
-total_volume = priority_packages["Volume (cm^3)"].sum()
-
-# Calculate average density (Density = Weight / Volume)
-# Note: We need to ensure we don't divide by zero
-average_density = (
-    priority_packages["Weight (kg)"] / priority_packages["Volume (cm^3)"]
-).mean()
+priority_packages['Density (kg/m^3)'] = (priority_packages['Weight (kg)'] / priority_packages['Volume (m^3)'])
+total_volume = priority_packages["Volume (m^3)"].sum()
 
 # Print results
 print(f"Total Weight of Priority Packages: {total_weight} kg")
-print(f"Total Volume of Priority Packages: {total_volume} cm^3")
-print(f"Average Density of Priority Packages: {average_density} kg/cm^3")
+print(f"Total Volume of Priority Packages: {total_volume} m^3")
+print(f"Average Density of Priority Packages: {priority_packages['Density (kg/m^3)'].mean()} kg/m^3")
 
-# Plotting the frequency distribution curve of weights
-plt.figure(figsize=(10, 6))
-plt.hist(
-    priority_packages["Weight (kg)"],
-    bins=int(sys.argv[3]),
-    density=False,
-    alpha=0.6,
-    color="g",
-    edgecolor="black",
-)
-plt.title("Frequency Distribution of Weights of Priority Packages")
-plt.xlabel("Weight (kg)")
-plt.ylabel("Frequency")
-plt.grid()
+if sys.argv[4].lower() == "w":
+    # Plotting the frequency distribution curve of weights
+    plt.figure(figsize=(10, 6))
+    plt.hist(
+        priority_packages["Weight (kg)"],
+        bins=int(sys.argv[3]),
+        density=False,
+        alpha=0.6,
+        color="g",
+        edgecolor="black",
+    )
+    plt.title("Frequency Distribution of Weights of Priority Packages")
+    plt.xlabel("Weight (kg)")
+    plt.ylabel("Frequency")
+    plt.grid()
 
-# Save the figure as an image file
+elif sys.argv[4].lower() == "d":
+    plt.figure(figsize=(10, 6))
+    plt.hist(
+        priority_packages["Density (kg/m^3)"],
+        bins=int(sys.argv[3]),
+        density=False,
+        alpha=0.6,
+        color="g",
+        edgecolor="black",
+    )
+    plt.title("Frequency Distribution of Density of Priority Packages")
+    plt.xlabel("Density (kg/m^3)")
+    plt.ylabel("Frequency")
+    plt.grid()
+
 output_file = sys.argv[2]
-plt.savefig(output_file)  # Save as PNG file
-plt.close()  # Close the plot to free up memory
+plt.savefig(output_file)
+plt.close()
+
