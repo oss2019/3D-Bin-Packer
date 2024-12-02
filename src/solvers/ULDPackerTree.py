@@ -8,8 +8,8 @@ from .ULDPackerBase import ULDPackerBase
 class SpaceNode:
     def __init__(
         self,
-        dimensions: np.ndarray,
         start_corner: np.ndarray,
+        dimensions: np.ndarray,
     ):
         self.length = dimensions[0]
         self.width = dimensions[1]
@@ -21,6 +21,97 @@ class SpaceNode:
         self.overlaps: List[(SpaceNode, SpaceNode)] = []
         self.children: List[SpaceNode] = []
         self.max_vols_in_children: List[Tuple[int, float]] = []
+
+    def get_overlap(self, other):
+        # Calculate the start and end corners of the overlap
+        overlap_start = np.maximum(self.start_corner, other.start_corner)
+        overlap_end = np.minimum(self.end_corner, other.end_corner)
+
+        # Check if there is an overlap
+        if np.all(overlap_start < overlap_end):
+            overlap_dimensions = overlap_end - overlap_start
+            return SpaceNode(overlap_start, overlap_dimensions)
+        else:
+            # No overlap, return None or raise an exception as needed
+            return None
+
+    def is_self_inside_other(self, other) -> bool:
+        return np.all(self.start_corner >= other.start_corner) and np.all(
+            self.end_corner <= other.end_corner
+        )
+
+    def is_shrinkable_after_placing(self, box_overlap):
+        if (
+            (box_overlap.length * box_overlap.width == self.length * self.width)
+            or (box_overlap.height * box_overlap.width == self.height * self.width)
+            or (box_overlap.height * box_overlap.length == self.height * self.length)
+        ):
+            return True
+
+        return False
+
+    def divide_into_subspaces(self, box_overlap):
+        if not box_overlap.is_self_inside_other(self):
+            raise Exception("Overlap box is not inside space to divide")
+
+        updated_spaces = []
+        ax, ay, az = self.start_corner
+        al, aw, ah = self.dimensions
+
+        ox, oy, oz = box_overlap.start_corner
+        ol, ow, oh = box_overlap.dimensions
+
+        # Check for remaining free areas after packing
+        # Convention, stand at origin and look towards x-infty
+        space1 = SpaceNode(
+            start_corner=np.array([ax, oy + ow, az]),
+            dimensions=np.array([al, aw - (oy + ow - ay), ah]),
+        )  # Left full
+        space2 = SpaceNode(
+            start_corner=np.array([ax, ay, az]), dimensions=np.array([al, oy - ay, ah])
+        )  # Right full
+        space3 = SpaceNode(
+            start_corner=np.array([ax, ay, az]), dimensions=np.array([ox - ax, aw, ah])
+        )  # Back full
+        # Front full
+        space4 = SpaceNode(
+            start_corner=np.array([ox + ol, ay, az]),
+            dimensions=np.array([al - (ox + ol - ax), aw, ah]),
+        )  # Front full
+        space5 = SpaceNode(
+            start_corner=np.array([ax, ay, az]), dimensions=np.array([al, aw, oz - az])
+        )  # Above full
+        # Down full
+        space6 = SpaceNode(
+            start_corner=np.array([ax, ay, oz + oh]),
+            dimensions=np.array([al, aw, ah - (oz + oh - az)]),
+        )  # Down full
+
+        if oy + ow < ay + aw and all(v > 0 for v in space1.dimensions):
+            updated_spaces.append(space1)
+            # print(f"Appending {space1}")
+
+        if oy > ay and all(v > 0 for v in space2.dimensions):
+            updated_spaces.append(space2)
+            # print(f"Appending {space2}")
+
+        if ox > ax and all(v > 0 for v in space3.dimensions):
+            updated_spaces.append(space3)
+            # print(f"Appending {space3}")
+
+        if ox + ol < ax + al and all(v > 0 for v in space4.dimensions):
+            updated_spaces.append(space4)
+            # print(f"Appending {space4}")
+
+        if oz > az and all(v > 0 for v in space5.dimensions):
+            updated_spaces.append(space5)
+            # print(f"Appending {space5}")
+
+        if oz + oh < az + ah and all(v > 0 for v in space6.dimensions):
+            updated_spaces.append(space6)
+            # print(f"Appending {space6}")
+
+        return updated_spaces
 
 
 class SpaceTree:
