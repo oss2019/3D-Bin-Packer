@@ -2,25 +2,25 @@ from typing import List, Tuple
 from dataclass.ULD import ULD
 from dataclass.Package import Package
 import numpy as np
+from .ULDPackerBase import ULDPackerBase
 
 
 class SpaceNode:
     def __init__(
         self,
-        length: int,
-        width: int,
-        height: int,
+        dimensions: np.ndarray,
         start_corner: np.ndarray,
     ):
-        self.length = length
-        self.width = width
-        self.height = height
-        self.position = start_corner
-        self.endcorner = start_corner + np.array([length, width, height])
+        self.length = dimensions[0]
+        self.width = dimensions[1]
+        self.height = dimensions[2]
+        self.dimensions = np.array(dimensions)
+        self.start_corner = start_corner
+        self.end_corner = start_corner + self.dimensions
 
-        self.neighbours: List[SpaceNode] = []
-        self.children: List[SpaceNode] = [None] * 8
-        self.max_vols_in_children: List[Tuple[int, float]] = [None] * 8
+        self.overlaps: List[(SpaceNode, SpaceNode)] = []
+        self.children: List[SpaceNode] = []
+        self.max_vols_in_children: List[Tuple[int, float]] = []
 
 
 class SpaceTree:
@@ -29,13 +29,10 @@ class SpaceTree:
         uld: ULD,
     ):
         self.uld_no = uld.id
-        self.root = SpaceNode(
-            uld.dimensions[0], uld.dimensions[1], uld.dimensions[2], (0, 0, 0)
-        )
+        self.root = SpaceNode(uld.dimensions, (0, 0, 0))
 
 
-# Define the ULDPacker class
-class ULDPacker:
+class ULDPackerBasicNonOverlap(ULDPackerBase):
     def __init__(
         self,
         ulds: List[ULD],
@@ -43,13 +40,12 @@ class ULDPacker:
         priority_spread_cost: int,
         max_passes: int = 1,
     ):
-        self.ulds = ulds
-        self.packages = packages
-        self.priority_spread_cost = priority_spread_cost
-        self.max_passes = max_passes  # Set the max number of packing passes
-        self.packed_positions = []  # [(package_id, uld_id, x, y, z)]
-        self.unpacked_packages = []
-        self.available_spaces = [u.available_spaces for u in ulds]
+        super().__init__(
+            ulds,
+            packages,
+            priority_spread_cost,
+            max_passes,
+        )
 
     def _find_available_space(
         self, uld: ULD, package: Package
@@ -62,21 +58,6 @@ class ULDPacker:
         #     if length <= al and width <= aw and height <= ah:
         #         return True, np.array([x, y, z])
         # return False, None
-
-    def _try_pack_package(self, package: Package, uld: ULD) -> bool:
-        if package.weight + uld.current_weight > uld.weight_limit:
-            return False  # Exceeds weight limit
-
-        can_fit, position = self._find_available_space(uld, package)
-        if can_fit:
-            x, y, z = position
-            length, width, height = package.dimensions
-            uld.occupied_positions.append(np.array([x, y, z, length, width, height]))
-            uld.current_weight += package.weight
-            self.packed_positions.append((package.id, uld.id, x, y, z))
-            self._update_available_spaces(uld, position, package)
-            return True
-        return False
 
     def _update_available_spaces(
         self, uld: ULD, position: np.ndarray, package: Package
@@ -164,78 +145,10 @@ class ULDPacker:
         )
         total_cost = total_delay_cost + priority_spread_cost
 
-        return self.packed_positions, self.unpacked_packages, total_cost
-
-    def validate_packing(self) -> Tuple[bool, List[str]]:
-        """Validate the packing process"""
-        validation_errors = []
-
-        # Check each ULD for validity
-        for uld in self.ulds:
-            # Check weight limits
-            if uld.current_weight > uld.weight_limit:
-                validation_errors.append(f"ULD {uld.id} exceeds weight limit!")
-
-            # Check each packed position within the ULD
-            for package_id, uld_id, x, y, z in self.packed_positions:
-                if uld.id == uld_id:
-                    # Retrieve the package
-                    package = next(pkg for pkg in self.packages if pkg.id == package_id)
-                    length, width, height = package.dimensions
-
-                    # Boundary check: Ensure package fits within ULD
-                    if (
-                        x + length > uld.dimensions[0]
-                        or y + width > uld.dimensions[1]
-                        or z + height > uld.dimensions[2]
-                    ):
-                        validation_errors.append(
-                            f"Package {package.id} in ULD {uld.id} extends beyond ULD boundaries!"
-                        )
-
-                    # Check for overlap with other packages
-                    for (
-                        other_package_id,
-                        other_uld_id,
-                        other_x,
-                        other_y,
-                        other_z,
-                    ) in self.packed_positions:
-                        if (other_package_id != package.id) and (
-                            other_uld_id == uld_id
-                        ):
-                            other_package = next(
-                                pkg
-                                for pkg in self.packages
-                                if pkg.id == other_package_id
-                            )
-                            other_length, other_width, other_height = (
-                                other_package.dimensions
-                            )
-
-                            # Check for overlap (if packages share space)
-                            if not (
-                                x + length <= other_x
-                                or x >= other_x + other_length
-                                or y + width <= other_y
-                                or y >= other_y + other_width
-                                or z + height <= other_z
-                                or z >= other_z + other_height
-                            ):
-                                validation_errors.append(
-                                    f"Package {package.id} overlaps with Package {other_package.id} in ULD {uld.id}!"
-                                )
-
-        # Return validation status and any errors found
-        is_valid = len(validation_errors) == 0
-        return is_valid, validation_errors
-
-    def count_priority_packages_in_uld(self):
-        priority_count_per_uld = {}
-        for package_id, uld_id, _, _, _ in self.packed_positions:
-            package = next(pkg for pkg in self.packages if pkg.id == package_id)
-            if package.is_priority:
-                if uld_id not in priority_count_per_uld:
-                    priority_count_per_uld[uld_id] = 0
-                priority_count_per_uld[uld_id] += 1
-        return priority_count_per_uld
+        return (
+            self.packed_positions,
+            self.packed_packages,
+            self.unpacked_packages,
+            self.uld_has_prio,
+            total_cost,
+        )

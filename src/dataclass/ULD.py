@@ -10,3 +10,4 @@ class ULD:
         self.dimensions = np.array([length, width, height])
         self.weight_limit = weight_limit
         self.current_weight = 0
+        self.current_vol_occupied = 0

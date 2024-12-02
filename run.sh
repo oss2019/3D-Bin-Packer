@@ -16,6 +16,30 @@ if [ "$#" -ne 4 ]; then
     usage
 fi
 
+DIRECTORY="src/"
+treat_warn_as_err=0
+warn_found=0
+
+# Find all .py files and search for lines containing 'WARNING'
+while IFS= read -r -d '' file; do
+    if grep -H "WARNING" "$file" &>/dev/null; then
+        echo "Warning found in: $file"
+        echo "-----------------------"
+        grep -Hn "WARNING" "$file"
+        echo "-----------------------"
+        warn_found=1
+    fi
+done < <(find "$DIRECTORY" -name "*.py" -print0)
+
+if [ "$warn_found" -eq 1 ]; then
+    if [ "$treat_warn_as_err" -eq 1 ]; then
+        echo "Treating warnings as errors."
+        exit 1
+    fi
+else
+    echo "No warnings found."
+fi
+
 # Assign arguments to variables for better readability
 SOLVER_TYPE=$1
 ULD_FILE=$2
