@@ -16,5 +16,6 @@ class Package:
         self.id = id
         self.dimensions = np.array([length, width, height])
         self.weight = weight
+        self.rotation = self.dimensions
         self.is_priority = is_priority
         self.delay_cost = delay_cost
