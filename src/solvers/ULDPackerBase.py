@@ -56,7 +56,8 @@ class ULDPackerBase:
             return False  # Exceeds weight limit
 
         # Define the package dimensions
-        package_rotations = list(itertools.permutations(package.dimensions))
+        # package_rotations = list(itertools.permutations(package.dimensions))
+        package_rotations = [package.dimensions]
 
         list_of_fits = []
         for orientation in package_rotations:
