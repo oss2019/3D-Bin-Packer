@@ -107,7 +107,7 @@ def main(uld_file, package_file, output_dir):
 
     # Generate 3D plots for ULDs
     generate_3d_plot(packer, output_dir)
-    # visualize_3d_packing(packer)
+    visualize_3d_packing(packer)
 
     # Format and print output
     output = format_output(packed_positions, unpacked_packages, total_cost)
@@ -183,8 +183,10 @@ Supported Solver Types:
             ULDPackerBasicNonOverlap as ULDPacker,
         )
     elif sys.argv[1] == "Tree":
-        from solvers.ULDPackerTree import run_bulk_insert_test_cases
-        run_bulk_insert_test_cases()
+        from solvers.ULDPackerTree import ULDPackerTree as ULDPacker
+
+        # run_bulk_insert_test_cases()
+        # exit()
     else:
         print(
             """Supported Solver Types:
