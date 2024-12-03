@@ -183,7 +183,8 @@ Supported Solver Types:
             ULDPackerBasicNonOverlap as ULDPacker,
         )
     elif sys.argv[1] == "Tree":
-        from solvers.ULDPackerTree import ULDPackerTree as ULDPacker
+        from solvers.ULDPackerTree import run_bulk_insert_test_cases
+        run_bulk_insert_test_cases()
     else:
         print(
             """Supported Solver Types:
