@@ -18,7 +18,9 @@ class SpaceNode:
         self.start_corner = start_corner
         self.end_corner = start_corner + self.dimensions
 
-        self.overlaps: List[(SpaceNode, SpaceNode)] = []
+        self.is_leaf = True
+
+        self.overlaps: List[(SpaceNode, SpaceNode)] = []  # (which node, overlap region)
         self.children: List[SpaceNode] = []
         self.max_vols_in_children: List[Tuple[int, float]] = []
 
@@ -35,23 +37,24 @@ class SpaceNode:
             # No overlap, return None or raise an exception as needed
             return None
 
-    def is_self_inside_other(self, other) -> bool:
+    def is_completely_inside(self, other) -> bool:
         return np.all(self.start_corner >= other.start_corner) and np.all(
             self.end_corner <= other.end_corner
         )
 
-    def is_shrinkable_after_placing(self, box_overlap):
-        if (
-            (box_overlap.length * box_overlap.width == self.length * self.width)
-            or (box_overlap.height * box_overlap.width == self.height * self.width)
-            or (box_overlap.height * box_overlap.length == self.height * self.length)
-        ):
-            return True
-
-        return False
+    # Unused function
+    # def is_shrinkable_after_placing(self, box_overlap):
+    #     if (
+    #         (box_overlap.length * box_overlap.width == self.length * self.width)
+    #         or (box_overlap.height * box_overlap.width == self.height * self.width)
+    #         or (box_overlap.height * box_overlap.length == self.height * self.length)
+    #     ):
+    #         return True
+    #
+    #     return False
 
     def divide_into_subspaces(self, box_overlap):
-        if not box_overlap.is_self_inside_other(self):
+        if not box_overlap.is_completely_inside(self):
             raise Exception("Overlap box is not inside space to divide")
 
         updated_spaces = []
@@ -120,7 +123,110 @@ class SpaceTree:
         uld: ULD,
     ):
         self.uld_no = uld.id
-        self.root = SpaceNode(uld.dimensions, (0, 0, 0))
+        self.root = SpaceNode(np.zeros(3), uld.dimensions)
+
+    def divide_node_into_children(node_to_divide: SpaceNode, package: Package):
+        if not node_to_divide.is_leaf:
+            raise Exception("Dividing non leaf node")
+
+        package_start_corner = node_to_divide.start_corner
+        packed_space = SpaceNode(package_start_corner, package.dimensions)
+
+        if packed_space.is_completely_inside(node_to_divide):
+            # Convert node to parent
+            node_to_divide.is_leaf = False
+
+            # Get possible children
+            children = node_to_divide.divide_into_subspaces(packed_space)
+
+            # Remove children who are subspaces of overlaps
+            remaining_children = []
+
+            for child in children:
+                should_keep = True
+                for ext_node, ext_overlap in node_to_divide.overlaps:
+                    if child.is_completely_inside(ext_overlap):
+                        should_keep = False  # Mark to remove this child
+                        break
+
+                if should_keep:
+                    remaining_children.append(child)
+
+            # Set children
+            children[:] = remaining_children
+            node_to_divide.children = children
+
+            for ext_node, ext_overlap in node_to_divide.overlaps:
+                package_crossed_over = packed_space.get_overlap(ext_node)
+
+                # If packed_space crosses over to another node, tell it to subdivide
+                if package_crossed_over is not None:
+                    ext_children = ext_node.divide_into_subspaces(package_crossed_over)
+
+                    # Remove children who are subspaces of overlaps
+                    ext_remaining_children = []
+
+                    for ext_child in ext_children:
+                        # WARNING LOSS OF SUBSCPACES POSSIBLE?, INFINITE LOOP POSSIBLE?
+                        should_keep = True
+                        for ext_ext_node, ext_ext_overlap in ext_node.overlaps:
+                            if ext_child.is_completely_inside(ext_ext_overlap):
+                                should_keep = False  # Mark to remove this child
+                                break
+
+                            if not ext_ext_node.is_leaf:
+                                for original_child in ext_ext_node.children:
+                                    child_to_child_overlap = ext_child.get_overlap(
+                                        original_child
+                                    )
+
+                                    if child_to_child_overlap is not None:
+                                        ext_child.overlaps.append(
+                                            original_child, child_to_child_overlap
+                                        )
+                                        original_child.overlaps.append(
+                                            ext_child, child_to_child_overlap
+                                        )
+
+                                        ext_node.is_leaf = False
+                        if should_keep:
+                            ext_remaining_children.append(ext_child)
+
+                    # Set children
+                    ext_children[:] = ext_remaining_children
+                    ext_node.children = ext_children
+
+                # Package does not cross over to ext_node
+                else:
+                    remaining_overlaps = []
+
+                    # Keep overlaps that do not match node_to_divide
+                    for ov in ext_node.overlaps:
+                        if ov[0] != node_to_divide:
+                            remaining_overlaps.append(ov)
+
+                    # Update the original overlaps list
+                    ext_node.overlaps[:] = remaining_overlaps
+
+                    for child in node_to_divide.children:
+                        o = child.get_overlap(ext_node)
+
+                        if o is not None:
+                            ext_node.overlaps.append((child, o))
+                            child.overlaps.append((child, o))
+
+            # # For each child, update overlaps with external spaces
+            # for child in node_to_divide.children:
+            #     for ext_node, ext_overlap in node_to_divide.overlaps:
+            #         new_overlap = child.get_overlap(ext_node)
+            #         child.overlaps.append((ext_node, new_overlap))
+            # # For each old external spaces, update overlaps with children
+            # for ext_node, ext_overlap in node_to_divide.overlaps:
+            #     # for a in ext_node:
+            #     new_overlap = child.get_overlap(ext_node)
+            #     child.overlaps.append((ext_node, new_overlap))
+        else:
+            raise Exception("Trying to pack package outside boundaries of space")
 
 
 class ULDPackerBasicNonOverlap(ULDPackerBase):
