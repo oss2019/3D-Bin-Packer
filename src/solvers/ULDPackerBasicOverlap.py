@@ -24,9 +24,9 @@ class ULDPackerBasicOverlap(ULDPackerBase):
         )
 
     def _find_available_space(
-        self, uld: ULD, package: Package, policy: str
+        self, uld: ULD, package: Package, orientation: Tuple[int], policy: str
     ) -> Tuple[bool, np.ndarray]:
-        length, width, height = package.dimensions
+        length, width, height = orientation
         best_position = None
         best_idx = None
         if policy != "max_surface_area" and policy != "max_volume":
@@ -107,9 +107,14 @@ class ULDPackerBasicOverlap(ULDPackerBase):
         return False, None, -1
 
     def _update_available_spaces(
-        self, uld: ULD, position: np.ndarray, package: Package, space_index: int
+        self,
+        uld: ULD,
+        position: np.ndarray,
+        orientation: Tuple[int],
+        package: Package,
+        space_index: int,
     ):
-        length, width, height = package.dimensions
+        length, width, height = orientation
         x, y, z = position
 
         # Overlap cut
@@ -190,7 +195,10 @@ class ULDPackerBasicOverlap(ULDPackerBase):
                 key=lambda u: np.prod(u.dimensions),
                 reverse=True,
             ):
-                if self._try_pack_package(package, uld, space_find_policy="first_find"):
+                can_fit, orientation = self._try_pack_package(
+                    package, uld, space_find_policy="first_find"
+                )
+                if can_fit:
                     packed = True
                     # WARNING remove this print later
                     n_packs += 1
@@ -208,7 +216,10 @@ class ULDPackerBasicOverlap(ULDPackerBase):
                 key=lambda u: (1 - u.current_weight / u.weight_limit),
                 reverse=False,
             ):
-                if self._try_pack_package(package, uld, space_find_policy="first_find"):
+                can_fit, orientation = self._try_pack_package(
+                    package, uld, space_find_policy="first_find"
+                )
+                if can_fit:
                     packed = True
                     # WARNING remove this print later
                     n_packs += 1

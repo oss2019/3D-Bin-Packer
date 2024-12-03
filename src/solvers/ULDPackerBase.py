@@ -2,6 +2,9 @@ from typing import List, Tuple
 from dataclass.ULD import ULD
 from dataclass.Package import Package
 import numpy as np
+import itertools
+
+import pprint
 
 SIZE_BOUND = 5000
 
@@ -34,7 +37,12 @@ class ULDPackerBase:
         raise NotImplementedError("This method needs to be implemented.")
 
     def _update_available_spaces(
-        self, uld: ULD, position: np.ndarray, package: Package, space_index: int
+        self,
+        uld: ULD,
+        position: np.ndarray,
+        orientation: Tuple[int],
+        package: Package,
+        space_index: int,
     ):
         raise NotImplementedError("This method needs to be implemented.")
 
@@ -47,12 +55,43 @@ class ULDPackerBase:
         if package.weight + uld.current_weight > uld.weight_limit:
             return False  # Exceeds weight limit
 
-        can_fit, position, space_index = self._find_available_space(
-            uld, package, policy=space_find_policy
-        )
-        if can_fit:
-            x, y, z = position
-            length, width, height = package.dimensions
+        # Define the package dimensions
+        package_rotations = list(itertools.permutations(package.dimensions))
+
+        list_of_fits = []
+        for orientation in package_rotations:
+            can_fit, position, space_index = self._find_available_space(
+                uld, package, orientation, policy=space_find_policy
+            )
+
+            list_of_fits.append((can_fit, position, orientation, space_index))
+
+        # Find the element in list_of_fits with the minimum np.prod
+        minvol = None
+        best_space_index = None
+        best_orientation = None
+        best_position = None
+
+        for fit in list_of_fits:
+            s = self.available_spaces[uld.id]
+
+            if minvol is None and fit[0]:
+                minvol = np.prod(s[3::])
+                can_fit = fit[0]
+                best_position = fit[1]
+                best_orientation = fit[2]
+                best_space_index = fit[3]
+
+            elif minvol is not None:
+                if np.prod(s[3::]) < minvol and fit[0]:
+                    minvol = np.prod(s[3::])
+                    can_fit = fit[0]
+                    best_position = fit[1]
+                    best_orientation = fit[2]
+                    best_space_index = fit[3]
+
+        if minvol is not None:
+            x, y, z = best_position
 
             uld.current_weight += package.weight
             uld.current_vol_occupied += np.prod(package.dimensions)
@@ -60,11 +99,24 @@ class ULDPackerBase:
             if package.is_priority:
                 self.prio_ulds[uld.id] = True
 
-            self.packed_positions.append((package.id, uld.id, x, y, z))
-            self._update_available_spaces(uld, position, package, space_index)
+            self.packed_positions.append(
+                (
+                    package.id,
+                    uld.id,
+                    x,
+                    y,
+                    z,
+                    best_orientation[0],
+                    best_orientation[1],
+                    best_orientation[2],
+                )
+            )
+            self._update_available_spaces(
+                uld, best_position, best_orientation, package, best_space_index
+            )
 
-            return True
-        return False
+            return True, best_orientation
+        return False, (None, None, None)
 
     def validate_packing(self) -> Tuple[bool, List[str]]:
         """Validate the packing process"""
@@ -77,11 +129,19 @@ class ULDPackerBase:
                 validation_errors.append(f"ULD {uld.id} exceeds weight limit!")
 
             # Check each packed position within the ULD
-            for package_id, uld_id, x, y, z in self.packed_positions:
+            for (
+                package_id,
+                uld_id,
+                x,
+                y,
+                z,
+                length,
+                width,
+                height,
+            ) in self.packed_positions:
                 if uld.id == uld_id:
                     # Retrieve the package
                     package = next(pkg for pkg in self.packages if pkg.id == package_id)
-                    length, width, height = package.dimensions
 
                     # Boundary check: Ensure package fits within ULD
                     if (
@@ -100,6 +160,9 @@ class ULDPackerBase:
                         other_x,
                         other_y,
                         other_z,
+                        other_length,
+                        other_width,
+                        other_height,
                     ) in self.packed_positions:
                         if (other_package_id != package.id) and (
                             other_uld_id == uld_id
@@ -108,9 +171,6 @@ class ULDPackerBase:
                                 pkg
                                 for pkg in self.packages
                                 if pkg.id == other_package_id
-                            )
-                            other_length, other_width, other_height = (
-                                other_package.dimensions
                             )
 
                             # Check for overlap (if packages share space)
@@ -132,7 +192,7 @@ class ULDPackerBase:
 
     def count_priority_packages_in_uld(self):
         priority_count_per_uld = {}
-        for package_id, uld_id, _, _, _ in self.packed_positions:
+        for package_id, uld_id, _, _, _, _, _, _ in self.packed_positions:
             package = next(pkg for pkg in self.packages if pkg.id == package_id)
             if package.is_priority:
                 if uld_id not in priority_count_per_uld:

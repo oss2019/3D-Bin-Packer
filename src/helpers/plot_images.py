@@ -24,12 +24,20 @@ def generate_3d_plot(packer_instance, output_dir):
         random_int = 0
 
         # Plot each package
-        for package_id, uld_id, x, y, z in packer_instance.packed_positions:
+        for (
+            package_id,
+            uld_id,
+            x,
+            y,
+            z,
+            length,
+            width,
+            height,
+        ) in packer_instance.packed_positions:
             if uld.id == uld_id:
                 package = next(
                     pkg for pkg in packer_instance.packages if pkg.id == package_id
                 )
-                length, width, height = package.dimensions
 
                 # Create vertices for the package
                 vertices = [

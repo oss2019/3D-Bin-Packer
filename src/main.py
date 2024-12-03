@@ -54,8 +54,8 @@ def format_output(
     invalid_soln = False
     output = "Packing Results:\n"
     output += "Packed Positions:\n"
-    for package_id, uld_id, x, y, z in packed_positions:
-        output += f"Package {package_id} in ULD {uld_id} at position ({x}, {y}, {z})\n"
+    for package_id, uld_id, x, y, z, l, b, h in packed_positions:
+        output += f"Package {package_id} in ULD {uld_id} at position ({x}, {y}, {z}) with orientation {l}, {b}, {h}\n"
 
     output += "\nUnpacked Packages:\n"
     for pkg in unpacked_packages:
