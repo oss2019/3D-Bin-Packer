@@ -122,6 +122,7 @@ class SpaceTree:
         uld: ULD,
     ):
         self.uld_no = uld.id
+        self.uld_dimensions = uld.dimensions
         self.root = SpaceNode(np.zeros(3), uld.dimensions)
 
     def divide_node_into_children(self, node_to_divide: SpaceNode, package: Package):
@@ -238,28 +239,22 @@ class SpaceTree:
         volume = np.prod(package.rotation)
 
         if search_policy.lower() == "bfs":
-            best_fit_vol = np.inf
-            best_fit_node = None
 
             to_search = [self.root]
             while to_search:
                 searching_node = to_search.pop(0)
                 if searching_node.is_leaf:
-                    if (np.prod(searching_node.dimensions) - volume >= 0) and (
-                        np.prod(searching_node.dimensions) < best_fit_vol
-                    ):
+                    if (np.prod(searching_node.dimensions) >= volume):
                         for rot in permutations(package.dimensions):
                             if (
-                                rot[0] <= searching_node.dimensions[0]
-                                and rot[1] <= searching_node.dimensions[1]
-                                and rot[2] <= searching_node.dimensions[2]
+                                    (searching_node.start_corner[0] + rot[0] <= searching_node.end_corner[0])
+                                and (searching_node.start_corner[1] + rot[1] <=  searching_node.end_corner[1])
+                                and (searching_node.start_corner[2] + rot[2] <=  searching_node.end_corner[2])
                             ):
-                                best_fit_vol = np.prod(searching_node.dimensions)
-                                best_fit_node = searching_node
                                 package.rotation = rot
-                                break
+                                return searching_node
+
                 to_search.extend(searching_node.children)
-            return best_fit_node
         return None
 
     def display_tree(self, node=None, depth=0):
@@ -291,13 +286,14 @@ class ULDPackerTree(ULDPackerBase):
             max_passes,
         )
         self.unpacked_packages = []
+
         self.space_trees = [(SpaceTree(u), u.id) for u in ulds]
 
     def insert(self, package: Package):
         for st, uid in self.space_trees:
             space = st.search(package, search_policy="bfs")
             if space is not None:
-                st.divide_node_into_children(space, package)
+                st.divide_node_into_children(space, package, )
                 print("-" * 50)
                 print(f"Tree {uid}")
                 # st.display_tree()
@@ -321,7 +317,7 @@ class ULDPackerTree(ULDPackerBase):
         pass
 
     def pack(self):
-        # WARNING remove this n_packs vairable its for logging
+        # WARNING remove this n_packs variable its for logging
         n_packs = 0
 
         priority_packages = sorted(
