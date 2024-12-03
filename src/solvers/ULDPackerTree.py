@@ -6,11 +6,8 @@ from .ULDPackerBase import ULDPackerBase
 
 
 class SpaceNode:
-    def __init__(
-        self,
-        start_corner: np.ndarray,
-        dimensions: np.ndarray,
-    ):
+    def __init__(self, start_corner: np.ndarray, dimensions: np.ndarray, parent=None):
+        self.parent = parent
         self.length = dimensions[0]
         self.width = dimensions[1]
         self.height = dimensions[2]
@@ -138,6 +135,8 @@ class SpaceTree:
 
             # Get possible children
             children = node_to_divide.divide_into_subspaces(packed_space)
+            for c in children:
+                c.parent = node_to_divide
 
             # Remove children who are subspaces of overlaps
             remaining_children = []
@@ -163,6 +162,9 @@ class SpaceTree:
                 if package_crossed_over is not None:
                     ext_children = ext_node.divide_into_subspaces(package_crossed_over)
 
+                    for c in ext_children:
+                        c.parent = ext_node
+
                     # Remove children who are subspaces of overlaps
                     ext_remaining_children = []
 
@@ -175,16 +177,16 @@ class SpaceTree:
                                 break
 
                             if not ext_ext_node.is_leaf:
-                                for original_child in ext_ext_node.children:
+                                for ext_ext_child in ext_ext_node.children:
                                     child_to_child_overlap = ext_child.get_overlap(
-                                        original_child
+                                        ext_ext_child
                                     )
 
                                     if child_to_child_overlap is not None:
                                         ext_child.overlaps.append(
-                                            original_child, child_to_child_overlap
+                                            ext_ext_child, child_to_child_overlap
                                         )
-                                        original_child.overlaps.append(
+                                        ext_ext_child.overlaps.append(
                                             ext_child, child_to_child_overlap
                                         )
 
@@ -227,6 +229,19 @@ class SpaceTree:
             #     child.overlaps.append((ext_node, new_overlap))
         else:
             raise Exception("Trying to pack package outside boundaries of space")
+
+    def display_tree(self, node=None, depth=0):
+        """
+        Display the space tree, including overlaps, for debugging purposes.
+        """
+        if node is None:
+            node = self.root
+
+        indent = "  " * depth
+        print(f"{indent}Node: Start={node.start_corner}, Dimensions={node.dimensions}")
+
+        for child in node.children:
+            self.display_tree(child, depth + 1)
 
 
 class ULDPackerBasicNonOverlap(ULDPackerBase):
