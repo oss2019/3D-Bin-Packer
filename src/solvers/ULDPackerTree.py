@@ -128,7 +128,7 @@ class SpaceTree:
             raise Exception("Dividing non leaf node")
 
         package_start_corner = node_to_divide.start_corner
-        packed_space = SpaceNode(package_start_corner, package.dimensions)
+        packed_space = SpaceNode(package_start_corner, package.rotation)
 
         if packed_space.is_completely_inside(node_to_divide):
             # Convert node to parent
@@ -229,7 +229,7 @@ class SpaceTree:
             #     new_overlap = child.get_overlap(ext_node)
             #     child.overlaps.append((ext_node, new_overlap))
         else:
-            raise Exception("Trying to pack package outside boundaries of space")
+            raise Exception(f"Trying to pack package outside boundaries of space {package.rotation} in {node_to_divide.dimensions}")
 
     def search(self, package: Package, search_policy="bfs"):
         volume = np.prod(package.rotation)
@@ -362,3 +362,50 @@ class ULDPackerBasicNonOverlap(ULDPackerBase):
     #         self.uld_has_prio,
     #         total_cost,
     #     )
+def run_bulk_insert_test_cases():
+    # Initialize ULDs
+    ulds = [
+        ULD(id="ULD1", length=10, width=10, height=10, weight_limit=500),
+        ULD(id="ULD2", length=10, width=10, height=10, weight_limit=300),
+        ULD(id="ULD3", length=10, width=10, height=10, weight_limit=200),
+    ]
+
+    # Bulk test cases
+    test_cases = [
+        # Test case 6: Mixed batch for maximum utilization
+        {
+            "name": "Mixed batch for maximum utilization",
+            "packages": [
+                Package(id=f"P{i}", length=(i % 6) + 2, width=(i % 5) + 2, height=(i % 4) + 2, weight=10, is_priority=(i % 3 == 0), delay_cost=6)
+                for i in range(1, 50)  # 50 packages of varying sizes
+            ],
+            "expected_unpacked": [],  # Should distribute effectively across ULDs
+        },
+    ]
+
+    for i, test in enumerate(test_cases, 1):
+        print(f"Running Test Case {i}: {test['name']}")
+        packer = ULDPackerBasicNonOverlap(
+            ulds=ulds,
+            packages=[],
+            priority_spread_cost=5,
+        )
+
+        # Sequentially insert packages
+        for package in test["packages"]:
+            packer.insert(package)
+            for st in packer.space_trees:
+                st.display_tree()
+            print("-" * 40)
+
+
+        # Check for unpacked packages
+        unpacked_ids = [pkg.id for pkg in packer.unpacked_packages]
+        passed = unpacked_ids == test["expected_unpacked"]
+        print(f"Test Passed: {passed}")
+        if not passed:
+            print(f"Expected unpacked: {test['expected_unpacked']}, Got: {unpacked_ids}")
+        print("-" * 40)
+
+# Run the bulk test cases
+run_bulk_insert_test_cases()
