@@ -183,7 +183,7 @@ class ULDPackerBasicOverlap(ULDPackerBase):
         # WARNING Normalization not done for sorting eco_pkg
         economy_packages = sorted(
             [pkg for pkg in self.packages if not pkg.is_priority],
-            key=lambda p: p.delay_cost / np.prod(p.dimensions),
+            key=lambda p: (p.delay_cost/ np.prod()),
             reverse=True,
         )
 
