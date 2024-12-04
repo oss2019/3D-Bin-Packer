@@ -256,6 +256,7 @@ class SpaceTree:
                         crossed_over_ext_node_list.append(ext_node)
 
             for ext_node in crossed_over_ext_node_list:
+                print(f"        --- Setting ext_overlaps of {ext_node.node_id} ---")
                 self._set_external_overlaps(ext_node)
 
             for ext_node in crossed_over_ext_node_list:
