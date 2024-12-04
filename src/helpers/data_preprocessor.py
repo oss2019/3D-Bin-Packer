@@ -14,7 +14,7 @@ input_file = sys.argv[1]
 df = pd.read_csv(input_file)
 
 # Filter for priority packages and create a new DataFrame
-priority_packages = df[df["Type (P/E)"] == "Priority"].copy()
+priority_packages = df[df["Type (P/E)"] != "Priority"].copy()
 
 # Calculate total weight of priority packages
 total_weight = priority_packages["Weight (kg)"].sum()

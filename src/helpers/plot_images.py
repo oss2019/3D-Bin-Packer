@@ -74,35 +74,37 @@ def generate_3d_plot(packer_instance, output_dir):
                 )
 
         # Plot each package
-        for (
-            x,
-            y,
-            z,
-            length,
-            width,
-            height,
-        ) in packer_instance.get_list_of_spaces(uld.id):
-            # Create vertices for the package
-            vertices = [
-                [x, y, z],
-                [x + length, y, z],
-                [x + length, y + width, z],
-                [x, y + width, z],
-                [x, y, z + height],
-                [x + length, y, z + height],
-                [x + length, y + width, z + height],
-                [x, y + width, z + height],
-            ]
+        lsp = packer_instance.get_list_of_spaces(uld.id)
+        if lsp is not None:
+            for (
+                x,
+                y,
+                z,
+                length,
+                width,
+                height,
+            ) in lsp:
+                # Create vertices for the package
+                vertices = [
+                    [x, y, z],
+                    [x + length, y, z],
+                    [x + length, y + width, z],
+                    [x, y + width, z],
+                    [x, y, z + height],
+                    [x + length, y, z + height],
+                    [x + length, y + width, z + height],
+                    [x, y + width, z + height],
+                ]
 
-            # Define the faces of the package
-            faces = [
-                [vertices[0], vertices[1], vertices[5], vertices[4]],
-                [vertices[1], vertices[2], vertices[6], vertices[5]],
-                [vertices[2], vertices[3], vertices[7], vertices[6]],
-                [vertices[3], vertices[0], vertices[4], vertices[7]],
-                [vertices[0], vertices[1], vertices[2], vertices[3]],
-                [vertices[4], vertices[5], vertices[6], vertices[7]],
-            ]
+                # Define the faces of the package
+                faces = [
+                    [vertices[0], vertices[1], vertices[5], vertices[4]],
+                    [vertices[1], vertices[2], vertices[6], vertices[5]],
+                    [vertices[2], vertices[3], vertices[7], vertices[6]],
+                    [vertices[3], vertices[0], vertices[4], vertices[7]],
+                    [vertices[0], vertices[1], vertices[2], vertices[3]],
+                    [vertices[4], vertices[5], vertices[6], vertices[7]],
+                ]
 
             # Assign a color to the package
             random_int += 1

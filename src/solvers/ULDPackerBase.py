@@ -49,6 +49,9 @@ class ULDPackerBase:
     def pack(self):
         raise NotImplementedError("This method needs to be implemented.")
 
+    def get_list_of_spaces(self, uld_id):
+        pass
+
     def _try_pack_package(
         self, package: Package, uld: ULD, space_find_policy: str
     ) -> bool:

@@ -87,6 +87,7 @@ def visualize_3d_packing(packer_instance):
 
         # Create the container as a mesh
         container = pv.PolyData(container_points, container_faces)
+        # print(container_points)
 
         # Add the container mesh with edge color
         plotter.add_mesh(
@@ -98,18 +99,20 @@ def visualize_3d_packing(packer_instance):
         )
 
         # Add the cuboids to the plot
-        for package_id, uld_id, x, y, z, l, b, h in packer_instance.packed_positions:
+        for package_id, uld_id, x, y, z, l, w, h in packer_instance.packed_positions:
             if uld_id != uld.id:
                 continue
             package = next(
                 pkg for pkg in packer_instance.packages if pkg.id == package_id
             )
             l, w, h = package.rotation
-            draw_cuboid(plotter, x, y, z, l, w, h, 0)
+            draw_cuboid(plotter, x, y, z, l, w, h, 1)
 
-        for x, y, z, l, b, h in packer_instance.get_list_of_spaces(uld.id):
-            # print(x, y, z, l, b, h)
-            draw_cuboid(plotter, x, y, z, l, w, h, 0.1)
+        lsp = packer_instance.get_list_of_spaces(uld.id)
+        if lsp is not None:
+            for x, y, z, l, w, h in lsp:
+                # print(x, y, z, l, b, h)
+                draw_cuboid(plotter, x, y, z, l, w, h, 0.1)
 
         # Set the camera position for a good view
         plotter.view_isometric()

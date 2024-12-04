@@ -1,7 +1,7 @@
 Package Identifier,Length (cm),Width (cm),Height (cm),Weight (kg),Type (P/E),Cost of Delay
 P-252,48,110,95,139,Priority,-
-# P-183,105,72,57,37,Priority,-
-# P-270,52,70,47,12,Priority,-
+P-183,105,72,57,37,Priority,-
+P-270,52,70,47,12,Priority,-
 # P-310,65,59,43,15,Priority,-
 # P-365,88,110,95,217,Priority,-
 # P-106,90,54,92,100,Priority,-
