@@ -32,13 +32,10 @@ class ULDPackerTree(ULDPackerBase):
                     space,
                     package,
                 )
-                print("-" * 50)
-                print(f"{space.node_id} is for {package.id}")
-                # print(space.start_corner)
-                # print(space.end_corner)
-                # print(package.rotation)
+                print(f"\n{space.node_id} is for {package.id}\n")
                 print(f"Tree {uid}")
                 st.display_tree()
+                print("-" * 50)
                 # input()
                 return True, space.start_corner, uid
         return False, None, None

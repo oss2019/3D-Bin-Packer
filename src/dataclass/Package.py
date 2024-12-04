@@ -14,6 +14,9 @@ class Package:
         delay_cost: int,
     ):
         self.id = id
+        self.length = length
+        self.width = width
+        self.height = height
         self.dimensions = np.array([length, width, height])
         self.weight = weight
         self.rotation = self.dimensions

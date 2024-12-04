@@ -112,7 +112,7 @@ def visualize_3d_packing(packer_instance):
         if lsp is not None:
             for x, y, z, l, w, h in lsp:
                 # print(x, y, z, l, b, h)
-                draw_cuboid(plotter, x, y, z, l, w, h, 0.1)
+                draw_cuboid(plotter, x, y, z, l, w, h, 0)
 
         # Set the camera position for a good view
         plotter.view_isometric()
