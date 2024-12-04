@@ -189,12 +189,18 @@ class SpaceTree:
     def _set_external_overlaps(self, current_node):
         for neighbour_node, neighbour_overlap in current_node.overlaps:
             for current_child in current_node.children:
+                print(
+                    f"Setting to Node {current_child.node_id} {neighbour_node.node_id}",
+                    flush=True,
+                )
                 if neighbour_node.is_leaf:
                     self._check_and_add_overlap(current_child, neighbour_node)
+                    print(f"NEIGHBOUR")
 
                 else:
                     for neighbour_child in neighbour_node.children:
-                        self._check_and_add_overlap(neighbour_child, current_child)
+                        self._check_and_add_overlap(current_child, neighbour_child)
+                        print(f"NEIGHBOUR CHILD")
 
     def divide_node_into_children_v2(self, node_to_divide: SpaceNode, package: Package):
         if not node_to_divide.is_leaf:
