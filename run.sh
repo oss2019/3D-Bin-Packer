@@ -49,7 +49,7 @@ OUTPUT_DIR=$4
 mkdir -p "$OUTPUT_DIR"
 
 # Validate solver type
-if [[ "$SOLVER_TYPE" != "BasicOverlap" && "$SOLVER_TYPE" != "BasicNonOverlap" && "$SOLVER_TYPE" != "Tree" ]]; then
+if [[ "$SOLVER_TYPE" != "BasicOverlap" && "$SOLVER_TYPE" != "BasicNonOverlap" && "$SOLVER_TYPE" != "Tree" && "$SOLVER_TYPE" != "Mixed" ]]; then
     echo "Error: Invalid solver type '$SOLVER_TYPE'."
     usage
 fi

@@ -184,6 +184,8 @@ Supported Solver Types:
         )
     elif sys.argv[1] == "Tree":
         from solvers.ULDPackerTree import ULDPackerTree as ULDPacker
+    elif sys.argv[1] == "Mixed":
+        from solvers.ULDPackerMixed import ULDPackerMixed as ULDPacker
 
         # run_bulk_insert_test_cases()
         # exit()
@@ -192,7 +194,8 @@ Supported Solver Types:
             """Supported Solver Types:
   - BasicOverlap
   - BasicNonOverlap (not working for Priority 100% packing),
-  - Tree"""
+  - Tree
+  - Mixed"""
         )
         exit(1)
 
