@@ -216,6 +216,9 @@ class ULDPackerBasicOverlap(ULDPackerBase):
                 key=lambda u: (1 - u.current_weight / u.weight_limit),
                 reverse=False,
             ):
+                print(
+                    self._try_pack_package(package, uld, space_find_policy="first_find")
+                )
                 can_fit, orientation = self._try_pack_package(
                     package, uld, space_find_policy="first_find"
                 )
