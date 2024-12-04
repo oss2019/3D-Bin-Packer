@@ -198,7 +198,7 @@ class SpaceNode:
         else:
             raise Exception("Overlap dimensions are too large to handle")
 
-    def is_feasisible(self):
+    def is_feasible(self):
         return all(v >= 40 for v in self.dimensions)
 
     def __eq__(self, other):

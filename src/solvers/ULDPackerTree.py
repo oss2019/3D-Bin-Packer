@@ -28,7 +28,7 @@ class ULDPackerTree(ULDPackerBase):
         for st, uid in self.space_trees:
             space = st.search(package, search_policy="bfs")
             if space is not None:
-                st.divide_node_into_children_v2(
+                st.divide_node_into_children_v3(
                     space,
                     package,
                 )
@@ -136,6 +136,11 @@ class ULDPackerTree(ULDPackerBase):
             self.prio_ulds,
             total_cost,
         )
+
+    def get_list_of_spaces(self, uld_id):
+        for st, uid in self.space_trees:
+            if uid == uld_id:
+                return st.create_list_of_spaces()
 
 
 def run_bulk_insert_test_cases():

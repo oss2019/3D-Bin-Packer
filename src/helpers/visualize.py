@@ -3,7 +3,7 @@ import pyvista as pv
 import numpy as np
 
 
-def draw_cuboid(grid, x, y, z, l, w, h):
+def draw_cuboid(grid, x, y, z, l, w, h, opacity):
     """
     Create a cuboid and add it to the plot.
     :param grid: The PyVista grid to add the cuboid to.
@@ -47,7 +47,7 @@ def draw_cuboid(grid, x, y, z, l, w, h):
         3,
     )  # Random color
     grid.add_mesh(
-        cuboid, color=color, show_edges=True, edge_color="black"
+        cuboid, color=color, show_edges=True, opacity=opacity, edge_color="black"
     )  # Add the cuboid mesh
 
 
@@ -105,7 +105,11 @@ def visualize_3d_packing(packer_instance):
                 pkg for pkg in packer_instance.packages if pkg.id == package_id
             )
             l, w, h = package.rotation
-            draw_cuboid(plotter, x, y, z, l, w, h)
+            draw_cuboid(plotter, x, y, z, l, w, h, 0)
+
+        for x, y, z, l, b, h in packer_instance.get_list_of_spaces(uld.id):
+            # print(x, y, z, l, b, h)
+            draw_cuboid(plotter, x, y, z, l, w, h, 0.1)
 
         # Set the camera position for a good view
         plotter.view_isometric()

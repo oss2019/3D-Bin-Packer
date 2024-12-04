@@ -1,15 +1,15 @@
 Package Identifier,Length (cm),Width (cm),Height (cm),Weight (kg),Type (P/E),Cost of Delay
 P-252,48,110,95,139,Priority,-
-P-183,105,72,57,37,Priority,-
-P-270,52,70,47,12,Priority,-
-P-310,65,59,43,15,Priority,-
-P-365,88,110,95,217,Priority,-
-P-106,90,54,92,100,Priority,-
-P-282,107,92,54,147,Priority,-
-P-236,91,56,56,57,Priority,-
-P-219,94,61,76,57,Priority,-
-P-265,47,60,58,37,Priority,-
-P-69,84,47,54,57,Priority,-
-P-394,109,90,81,68,Priority,-
-P-157,88,88,54,30,Priority,-
-P-105,80,95,103,225,Priority,-
+# P-183,105,72,57,37,Priority,-
+# P-270,52,70,47,12,Priority,-
+# P-310,65,59,43,15,Priority,-
+# P-365,88,110,95,217,Priority,-
+# P-106,90,54,92,100,Priority,-
+# P-282,107,92,54,147,Priority,-
+# P-236,91,56,56,57,Priority,-
+# P-219,94,61,76,57,Priority,-
+# P-265,47,60,58,37,Priority,-
+# P-69,84,47,54,57,Priority,-
+# P-394,109,90,81,68,Priority,-
+# P-157,88,88,54,30,Priority,-
+# P-105,80,95,103,225,Priority,-
