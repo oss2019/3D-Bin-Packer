@@ -210,6 +210,11 @@ class SpaceNode:
         return all(v >= 40 for v in self.dimensions)
 
 
+    def __eq__(self,other):
+        if (self.start_corner == other.start_corner).all() and (self.end_corner == other.end_corner).all():
+            return True
+        return False
+
 class SpaceTree:
     def __init__(
         self,
@@ -234,10 +239,11 @@ class SpaceTree:
         if node1 != node2:
             # raise Exception(f"Overlap detected to itself {node1.node_id}")
             overlap = node1.get_overlap(node2)
-            if overlap is not None:
-                node1.overlaps.append((node2, overlap))
-                node2.overlaps.append((node1, overlap))
-                print(f"Added overlap between {node1.node_id} - {node2.node_id}")
+            if (node1, overlap) not in node2.overlaps and (node2, overlap) not in node1.overlaps:
+                if overlap is not None:
+                    node1.overlaps.append((node2, overlap))
+                    node2.overlaps.append((node1, overlap))
+                    print(f"Added overlap between {node1.node_id} - {node2.node_id}")
 
     def _assign_node_id_and_parent(self, c, parent):
         global global_node_id
@@ -254,12 +260,14 @@ class SpaceTree:
         if node.overlaps is None:
             raise Exception(f"{node.node_id} overlaps is None")
 
-        children_to_remove = set([])
+        children_to_remove = []
         for c in node.children:
             if node.overlaps is not None:
                 for o in node.overlaps:
                     if c.is_completely_inside(o[1]):
-                        children_to_remove.add(c)
+                        if c not in children_to_remove:
+                            children_to_remove.append(c)
+
             else:
                 raise Exception(
                     f"{node.node_id} has None overlaps while child tries to retrieve them"
