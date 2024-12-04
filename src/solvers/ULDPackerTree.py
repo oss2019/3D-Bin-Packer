@@ -120,6 +120,95 @@ class SpaceNode:
 
         return updated_spaces
 
+    def shrink_to_avoid_overlap(self, other):
+        # Check if 'other' is completely inside 'self'
+        if other.is_completely_inside(self):
+            print("Other is completely inside self. No changes made.")
+            return
+
+        overlap = self.get_overlap(other)
+        if not overlap:
+            print("No overlap detected.")
+            return
+
+        print(f"Overlap detected. Shrinking both spaces.")
+
+        # Get the overlap dimensions and positions
+        ax, ay, az = self.start_corner
+        al, aw, ah = self.dimensions
+
+        bx, by, bz = other.start_corner
+        bl, bw, bh = other.dimensions
+
+        ox, oy, oz = overlap.start_corner
+        ol, ow, oh = overlap.dimensions
+
+        # Shrink self (self needs to shrink in direction of overlap)
+        # Shrink along the x-axis
+        if ox > ax:
+            self.dimensions[0] = ox - ax  # Shrink self from left
+        elif ox + ol < ax + al:
+            self.start_corner[0] = ox + ol
+            self.dimensions[0] = ax + al - (ox + ol)  # Shrink self from right
+
+        # Shrink along the y-axis
+        if oy > ay:
+            self.dimensions[1] = oy - ay  # Shrink self from bottom
+        elif oy + ow < ay + aw:
+            self.start_corner[1] = oy + ow
+            self.dimensions[1] = ay + aw - (oy + ow)  # Shrink self from top
+
+        # Shrink along the z-axis
+        if oz > az:
+            self.dimensions[2] = oz - az  # Shrink self from below
+        elif oz + oh < az + ah:
+            self.start_corner[2] = oz + oh
+            self.dimensions[2] = az + ah - (oz + oh)  # Shrink self from above
+
+        # Shrink other (other needs to shrink in direction of overlap)
+        # Shrink along the x-axis
+        if ox > bx:
+            other.dimensions[0] = ox - bx  # Shrink other from left
+        elif ox + ol < bx + bl:
+            other.start_corner[0] = ox + ol
+            other.dimensions[0] = bx + bl - (ox + ol)  # Shrink other from right
+
+        # Shrink along the y-axis
+        if oy > by:
+            other.dimensions[1] = oy - by  # Shrink other from bottom
+        elif oy + ow < by + bw:
+            other.start_corner[1] = oy + ow
+            other.dimensions[1] = by + bw - (oy + ow)  # Shrink other from top
+
+        # Shrink along the z-axis
+        if oz > bz:
+            other.dimensions[2] = oz - bz  # Shrink other from below
+        elif oz + oh < bz + bh:
+            other.start_corner[2] = oz + oh
+            other.dimensions[2] = bz + bh - (oz + oh)  # Shrink other from above
+
+        # Update end_corner for both nodes
+        self.end_corner = self.start_corner + self.dimensions
+        other.end_corner = other.start_corner + other.dimensions
+
+    def _subtract(self, other):
+        if not (self.is_leaf and other.is_leaf):
+            raise Exception("Cannot subtract from a non-empty space")
+
+        overlap = self.get_overlap(other)
+        if not overlap:  # No overlap, nothing to do
+            return
+
+        # Check if the overlap is feasible (all dimensions are less than 40)
+        if all(dim < 40 for dim in overlap.dimensions):
+            # Shrink both nodes to remove the overlap
+            self.shrink_to_avoid_overlap(other)
+        else:
+            raise Exception("Overlap dimensions are too large to handle")
+
+    def is_feasisible(self):
+        return all(v >= 40 for v in self.dimensions)
+
 
 class SpaceTree:
     def __init__(
