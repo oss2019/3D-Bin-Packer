@@ -138,12 +138,12 @@ class SpaceTree:
             )
 
         if node1 == node2:
-            raise Exception(f"Overlap detected to itself {node1.node_id}")
-        overlap = node1.get_overlap(node2)
-        if overlap is not None:
-            node1.overlaps.append((node2, overlap))
-            node2.overlaps.append((node1, overlap))
-            print(f"Added overlap between {node1.node_id} - {node2.node_id}")
+            # raise Exception(f"Overlap detected to itself {node1.node_id}")
+            overlap = node1.get_overlap(node2)
+            if overlap is not None:
+                node1.overlaps.append((node2, overlap))
+                node2.overlaps.append((node1, overlap))
+                print(f"Added overlap between {node1.node_id} - {node2.node_id}")
 
     def _assign_node_id_and_parent(self, c, parent):
         global global_node_id
@@ -205,6 +205,9 @@ class SpaceTree:
             node_to_divide.is_leaf = False
 
             self._remove_unnecessary_children(node_to_divide)
+
+            # Set internal overlaps (between current node)
+            self._set_internal_overlaps(node_to_divide)
 
             crossed_over_ext_node_list = []
 
@@ -382,9 +385,6 @@ class SpaceTree:
                                 )
                             ):
                                 package.rotation = rot
-                                print(searching_node.start_corner)
-                                print(searching_node.end_corner)
-                                print(rot)
                                 return searching_node
 
                 to_search.extend(searching_node.children)
@@ -435,8 +435,11 @@ class ULDPackerTree(ULDPackerBase):
                 )
                 print("-" * 50)
                 print(f"{space.node_id} is for {package.id}")
-                # print(f"Tree {uid}")
-                # st.display_tree()
+                # print(space.start_corner)
+                # print(space.end_corner)
+                # print(package.rotation)
+                print(f"Tree {uid}")
+                st.display_tree()
                 # input()
                 return True, space.start_corner, uid
         return False, None, None
