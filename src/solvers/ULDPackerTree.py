@@ -132,12 +132,17 @@ class SpaceTree:
         self.root.node_id = 0
 
     def _check_and_add_overlap(self, node1, node2):
-        if not node1.is_leaf and not node2.is_leaf:
+        if not node1.is_leaf or not node2.is_leaf:
             raise Exception(
                 f"Overlap detected between non-leaf nodes {node1.node_id} {node1.is_leaf} and {node2.node_id} {node2.is_leaf}"
             )
 
-        if node1 == node2:
+        # if node1.overlaps is None or node2.overlaps is None:
+        #     raise Exception(
+        #         f"One of these nodes in completely inside a box {node1.node_id} {node1.overlaps is None} and {node2.node_id} {node2.overlaps is None}"
+        #     )
+
+        if node1 != node2:
             # raise Exception(f"Overlap detected to itself {node1.node_id}")
             overlap = node1.get_overlap(node2)
             if overlap is not None:
@@ -156,6 +161,10 @@ class SpaceTree:
     def _remove_unnecessary_children(self, node):
         # WARNING MUST BE CALLED BEFORE CLEARING NODE OVERLAPS
         # Remove unnecessary children
+
+        if node.overlaps is None:
+            raise Exception(f"{node.node_id} overlaps is None")
+
         children_to_remove = set([])
         for c in node.children:
             if node.overlaps is not None:
@@ -191,6 +200,8 @@ class SpaceTree:
         if not node_to_divide.is_leaf:
             raise Exception(f"Dividing non leaf node {node_to_divide.node_id}")
 
+        print(f" --- Dividing {node_to_divide.node_id} ---")
+
         package_start_corner = node_to_divide.start_corner
         packed_space = SpaceNode(package_start_corner, package.rotation)
 
@@ -198,15 +209,18 @@ class SpaceTree:
             # Get possible children
             children = node_to_divide.divide_into_subspaces(packed_space)
 
+            print(f"    --- Assigning children to {node_to_divide.node_id} ---")
             for c in children:
                 self._assign_node_id_and_parent(c, node_to_divide)
 
             node_to_divide.children = children
             node_to_divide.is_leaf = False
 
+            print(f"    --- Removing children from {node_to_divide.node_id} ---")
             self._remove_unnecessary_children(node_to_divide)
 
             # Set internal overlaps (between current node)
+            print(f"    --- Setting int_overlaps of {node_to_divide.node_id} ---")
             self._set_internal_overlaps(node_to_divide)
 
             crossed_over_ext_node_list = []
@@ -219,15 +233,24 @@ class SpaceTree:
                             package_crossed_over
                         )
 
+                        print(
+                            f"        --- Assigning children to {ext_node.node_id} ---"
+                        )
                         for ec in ext_children:
                             self._assign_node_id_and_parent(ec, ext_node)
 
                         ext_node.children = ext_children
                         ext_node.is_leaf = False
 
+                        print(
+                            f"        --- Removing children from {ext_node.node_id} ---"
+                        )
                         self._remove_unnecessary_children(ext_node)
 
                         # Set internal overlaps (between children of ext node)
+                        print(
+                            f"        --- Setting int_overlaps of {ext_node.node_id} ---"
+                        )
                         self._set_internal_overlaps(ext_node)
 
                         crossed_over_ext_node_list.append(ext_node)
@@ -238,10 +261,17 @@ class SpaceTree:
             for ext_node in crossed_over_ext_node_list:
                 if not ext_node.is_leaf:
                     ext_node.overlaps = None
-                    print(f"Setting {ext_node.node_id} overlaps to None")
+                    print(
+                        f"            Setting {ext_node.node_id} overlaps to None as it's crossed over from {node_to_divide.node_id}"
+                    )
+                    print(ext_node.children)
 
             node_to_divide.overlaps = None
-            print(f"Setting {node_to_divide.node_id} overlaps to None")
+            print(
+                f"Setting {node_to_divide.node_id} overlaps to None as its node_to_divide"
+            )
+            print()
+            print()
 
     def divide_node_into_children(self, node_to_divide: SpaceNode, package: Package):
         if not node_to_divide.is_leaf:
