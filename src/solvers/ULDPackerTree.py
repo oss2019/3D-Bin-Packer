@@ -7,8 +7,12 @@ from .ULDPackerBase import ULDPackerBase
 from itertools import permutations
 
 
+global_node_id = 1
+
+
 class SpaceNode:
     def __init__(self, start_corner: np.ndarray, dimensions: np.ndarray, parent=None):
+        self.node_id = None
         self.parent = parent
         self.length = dimensions[0]
         self.width = dimensions[1]
@@ -19,7 +23,8 @@ class SpaceNode:
 
         self.is_leaf = True
 
-        self.overlaps: List[(SpaceNode, SpaceNode)] = []  # (which node, overlap region)
+        # (which node, overlap region)
+        self.overlaps: List[(SpaceNode, SpaceNode)] = []
         self.children: List[SpaceNode] = []
         self.max_vols_in_children: List[Tuple[int, float]] = []
 
@@ -124,6 +129,116 @@ class SpaceTree:
         self.uld_no = uld.id
         self.uld_dimensions = uld.dimensions
         self.root = SpaceNode(np.zeros(3), uld.dimensions)
+        self.root.node_id = 0
+
+    def _check_and_add_overlap(self, node1, node2):
+        if not node1.is_leaf and not node2.is_leaf:
+            raise Exception(
+                f"Overlap detected between non-leaf nodes {node1.node_id} {node1.is_leaf} and {node2.node_id} {node2.is_leaf}"
+            )
+
+        if node1 == node2:
+            raise Exception(f"Overlap detected to itself {node1.node_id}")
+        overlap = node1.get_overlap(node2)
+        if overlap is not None:
+            node1.overlaps.append((node2, overlap))
+            node2.overlaps.append((node1, overlap))
+            print(f"Added overlap between {node1.node_id} - {node2.node_id}")
+
+    def _assign_node_id_and_parent(self, c, parent):
+        global global_node_id
+
+        c.parent = parent
+        c.node_id = global_node_id
+        print(f"Assigned ID {c.node_id} to child of {c.parent.node_id}")
+        global_node_id += 1
+
+    def _remove_unnecessary_children(self, node):
+        # WARNING MUST BE CALLED BEFORE CLEARING NODE OVERLAPS
+        # Remove unnecessary children
+        children_to_remove = set([])
+        for c in node.children:
+            if node.overlaps is not None:
+                for o in node.overlaps:
+                    if c.is_completely_inside(o[1]):
+                        children_to_remove.add(c)
+            else:
+                raise Exception(
+                    f"{node.node_id} has None overlaps while child tries to retrieve them"
+                )
+
+        for c in children_to_remove:
+            node.children.remove(c)
+            print(f"Removed {c.node_id}")
+
+    def _set_internal_overlaps(self, node):
+        # Set internal overlaps (between children)
+        for c1 in node.children:
+            for c2 in node.children:
+                self._check_and_add_overlap(c1, c2)
+
+    def _set_external_overlaps(self, current_node):
+        for neighbour_node, neighbour_overlap in current_node.overlaps:
+            for current_child in current_node.children:
+                if neighbour_node.is_leaf:
+                    self._check_and_add_overlap(current_child, neighbour_node)
+
+                else:
+                    for neighbour_child in neighbour_node.children:
+                        self._check_and_add_overlap(neighbour_child, current_child)
+
+    def divide_node_into_children_v2(self, node_to_divide: SpaceNode, package: Package):
+        if not node_to_divide.is_leaf:
+            raise Exception(f"Dividing non leaf node {node_to_divide.node_id}")
+
+        package_start_corner = node_to_divide.start_corner
+        packed_space = SpaceNode(package_start_corner, package.rotation)
+
+        if packed_space.is_completely_inside(node_to_divide):
+            # Get possible children
+            children = node_to_divide.divide_into_subspaces(packed_space)
+
+            for c in children:
+                self._assign_node_id_and_parent(c, node_to_divide)
+
+            node_to_divide.children = children
+            node_to_divide.is_leaf = False
+
+            self._remove_unnecessary_children(node_to_divide)
+
+            crossed_over_ext_node_list = []
+
+            for ext_node, ext_overlaps in node_to_divide.overlaps:
+                package_crossed_over = packed_space.get_overlap(ext_node)
+                if package_crossed_over is not None:
+                    if ext_node.is_leaf:
+                        ext_children = ext_node.divide_into_subspaces(
+                            package_crossed_over
+                        )
+
+                        for ec in ext_children:
+                            self._assign_node_id_and_parent(ec, ext_node)
+
+                        ext_node.children = ext_children
+                        ext_node.is_leaf = False
+
+                        self._remove_unnecessary_children(ext_node)
+
+                        # Set internal overlaps (between children of ext node)
+                        self._set_internal_overlaps(ext_node)
+
+                        crossed_over_ext_node_list.append(ext_node)
+
+            for ext_node in crossed_over_ext_node_list:
+                self._set_external_overlaps(ext_node)
+
+            for ext_node in crossed_over_ext_node_list:
+                if not ext_node.is_leaf:
+                    ext_node.overlaps = None
+                    print(f"Setting {ext_node.node_id} overlaps to None")
+
+            node_to_divide.overlaps = None
+            print(f"Setting {node_to_divide.node_id} overlaps to None")
 
     def divide_node_into_children(self, node_to_divide: SpaceNode, package: Package):
         if not node_to_divide.is_leaf:
@@ -138,8 +253,11 @@ class SpaceTree:
 
             # Get possible children
             children = node_to_divide.divide_into_subspaces(packed_space)
+
             for c in children:
                 c.parent = node_to_divide
+                c.node_id = global_node_id
+                global_node_id += 1
 
             # Remove children who are subspaces of overlaps
             remaining_children = []
@@ -158,6 +276,13 @@ class SpaceTree:
             children[:] = remaining_children
             node_to_divide.children = children
 
+            # Set internal overlaps (between children)
+            for c1 in node_to_divide.children:
+                for c2 in node_to_divide.children:
+                    if not c1 == c2 and c1.get_overlap(c2) is not None:
+                        c1.overlaps.append((c2, c1.get_overlap(c2)))
+
+            # External subdivide and overlap section
             for ext_node, ext_overlap in node_to_divide.overlaps:
                 package_crossed_over = packed_space.get_overlap(ext_node)
 
@@ -167,6 +292,8 @@ class SpaceTree:
 
                     for c in ext_children:
                         c.parent = ext_node
+                        c.node_id = global_node_id
+                        global_node_id += 1
 
                     # Remove children who are subspaces of overlaps
                     ext_remaining_children = []
@@ -187,10 +314,10 @@ class SpaceTree:
 
                                     if child_to_child_overlap is not None:
                                         ext_child.overlaps.append(
-                                            ext_ext_child, child_to_child_overlap
+                                            (ext_ext_child, child_to_child_overlap)
                                         )
                                         ext_ext_child.overlaps.append(
-                                            ext_child, child_to_child_overlap
+                                            (ext_child, child_to_child_overlap)
                                         )
 
                                         ext_node.is_leaf = False
@@ -200,6 +327,12 @@ class SpaceTree:
                     # Set children
                     ext_children[:] = ext_remaining_children
                     ext_node.children = ext_children
+
+                    # Set internal overlaps (between children)
+                    for c1 in ext_node.children:
+                        for c2 in ext_node.children:
+                            if not c1 == c2 and c1.get_overlap(c2) is not None:
+                                c1.overlaps.append((c2, c1.get_overlap(c2)))
 
                 # Package does not cross over to ext_node
                 else:
@@ -218,18 +351,7 @@ class SpaceTree:
 
                         if o is not None:
                             ext_node.overlaps.append((child, o))
-                            child.overlaps.append((child, o))
-
-            # # For each child, update overlaps with external spaces
-            # for child in node_to_divide.children:
-            #     for ext_node, ext_overlap in node_to_divide.overlaps:
-            #         new_overlap = child.get_overlap(ext_node)
-            #         child.overlaps.append((ext_node, new_overlap))
-            # # For each old external spaces, update overlaps with children
-            # for ext_node, ext_overlap in node_to_divide.overlaps:
-            #     # for a in ext_node:
-            #     new_overlap = child.get_overlap(ext_node)
-            #     child.overlaps.append((ext_node, new_overlap))
+                            child.overlaps.append((ext_node, o))
         else:
             raise Exception(
                 f"Trying to pack package outside boundaries of space {package.rotation} in {node_to_divide.dimensions}"
@@ -239,19 +361,30 @@ class SpaceTree:
         volume = np.prod(package.rotation)
 
         if search_policy.lower() == "bfs":
-
             to_search = [self.root]
             while to_search:
                 searching_node = to_search.pop(0)
                 if searching_node.is_leaf:
-                    if (np.prod(searching_node.dimensions) >= volume):
+                    if np.prod(searching_node.dimensions) >= volume:
                         for rot in permutations(package.dimensions):
                             if (
-                                    (searching_node.start_corner[0] + rot[0] <= searching_node.end_corner[0])
-                                and (searching_node.start_corner[1] + rot[1] <=  searching_node.end_corner[1])
-                                and (searching_node.start_corner[2] + rot[2] <=  searching_node.end_corner[2])
+                                (
+                                    searching_node.start_corner[0] + rot[0]
+                                    <= searching_node.end_corner[0]
+                                )
+                                and (
+                                    searching_node.start_corner[1] + rot[1]
+                                    <= searching_node.end_corner[1]
+                                )
+                                and (
+                                    searching_node.start_corner[2] + rot[2]
+                                    <= searching_node.end_corner[2]
+                                )
                             ):
                                 package.rotation = rot
+                                print(searching_node.start_corner)
+                                print(searching_node.end_corner)
+                                print(rot)
                                 return searching_node
 
                 to_search.extend(searching_node.children)
@@ -265,7 +398,10 @@ class SpaceTree:
             node = self.root
 
         indent = "  " * depth
-        print(f"{indent}Node: Start={node.start_corner}, Dimensions={node.dimensions}")
+        # Start-{node.start_corner}, Dimensions={node.dimensions}
+        print(
+            f"{indent}Node: {node.node_id}, IsLeaf={node.is_leaf}, Overlaps={len(node.overlaps) if node.overlaps is not None else None}"
+        )
 
         for child in node.children:
             self.display_tree(child, depth + 1)
@@ -293,9 +429,13 @@ class ULDPackerTree(ULDPackerBase):
         for st, uid in self.space_trees:
             space = st.search(package, search_policy="bfs")
             if space is not None:
-                st.divide_node_into_children(space, package, )
+                st.divide_node_into_children_v2(
+                    space,
+                    package,
+                )
                 print("-" * 50)
-                print(f"Tree {uid}")
+                print(f"{space.node_id} is for {package.id}")
+                # print(f"Tree {uid}")
                 # st.display_tree()
                 # input()
                 return True, space.start_corner, uid
@@ -320,11 +460,12 @@ class ULDPackerTree(ULDPackerBase):
         # WARNING remove this n_packs variable its for logging
         n_packs = 0
 
-        priority_packages = sorted(
-            [pkg for pkg in self.packages if pkg.is_priority],
-            key=lambda p: np.prod(p.dimensions),
-            reverse=True,
-        )
+        priority_packages = [pkg for pkg in self.packages if pkg.is_priority]
+        # priority_packages = sorted(
+        #     [pkg for pkg in self.packages if pkg.is_priority],
+        #     key=lambda p: np.prod(p.dimensions),
+        #     reverse=True,
+        # )
 
         # WARNING Normalization not done for sorting eco_pkg
         economy_packages = sorted(

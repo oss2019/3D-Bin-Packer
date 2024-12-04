@@ -104,7 +104,7 @@ def visualize_3d_packing(packer_instance):
             package = next(
                 pkg for pkg in packer_instance.packages if pkg.id == package_id
             )
-            l, w, h = package.dimensions
+            l, w, h = package.rotation
             draw_cuboid(plotter, x, y, z, l, w, h)
 
         # Set the camera position for a good view
