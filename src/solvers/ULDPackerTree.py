@@ -137,18 +137,19 @@ class SpaceTree:
                 f"Overlap detected between non-leaf nodes {node1.node_id} {node1.is_leaf} and {node2.node_id} {node2.is_leaf}"
             )
 
-        # if node1.overlaps is None or node2.overlaps is None:
-        #     raise Exception(
-        #         f"One of these nodes in completely inside a box {node1.node_id} {node1.overlaps is None} and {node2.node_id} {node2.overlaps is None}"
-        #     )
-
-        if node1 != node2:
+        if node1.node_id != node2.node_id:
             # raise Exception(f"Overlap detected to itself {node1.node_id}")
             overlap = node1.get_overlap(node2)
             if overlap is not None:
-                node1.overlaps.append((node2, overlap))
-                node2.overlaps.append((node1, overlap))
+                if tuple([node2, overlap]) not in node1.overlaps:
+                    node1.overlaps.append((node2, overlap))
+                if tuple([node1, overlap]) not in node2.overlaps:
+                    node2.overlaps.append((node1, overlap))
                 print(f"Added overlap between {node1.node_id} - {node2.node_id}")
+
+            if node1.node_id == 34 and node2.node_id == 18:
+                print(node1.overlaps)
+                input()
 
     def _assign_node_id_and_parent(self, c, parent):
         global global_node_id
@@ -189,18 +190,24 @@ class SpaceTree:
     def _set_external_overlaps(self, current_node):
         for neighbour_node, neighbour_overlap in current_node.overlaps:
             for current_child in current_node.children:
-                print(
-                    f"Setting to Node {current_child.node_id} {neighbour_node.node_id}",
-                    flush=True,
-                )
                 if neighbour_node.is_leaf:
+                    print(
+                        f"           Setting ext of {current_child.node_id} to {neighbour_node.node_id}",
+                        flush=True,
+                    )
                     self._check_and_add_overlap(current_child, neighbour_node)
-                    print(f"NEIGHBOUR")
 
                 else:
+                    print(
+                        f"           Setting ext of {current_child.node_id} children of {neighbour_node.node_id}",
+                        flush=True,
+                    )
                     for neighbour_child in neighbour_node.children:
+                        print(
+                            f"               Child {neighbour_child.node_id}",
+                            flush=True,
+                        )
                         self._check_and_add_overlap(current_child, neighbour_child)
-                        print(f"NEIGHBOUR CHILD")
 
     def divide_node_into_children_v2(self, node_to_divide: SpaceNode, package: Package):
         if not node_to_divide.is_leaf:
