@@ -11,10 +11,12 @@ class SpaceTree:
     def __init__(
         self,
         uld: ULD,
+        minimum_dimension: int,
     ):
         self.uld_no = uld.id
         self.uld_dimensions = uld.dimensions
-        self.root = SpaceNode(np.zeros(3), uld.dimensions)
+        self.minimum_dimension = minimum_dimension
+        self.root = SpaceNode(np.zeros(3), uld.dimensions, minimum_dimension)
         self.root.node_id = 0
 
     def _check_and_add_link(self, node1, node2):
@@ -121,7 +123,7 @@ class SpaceTree:
         print(f" --- Dividing {node_to_divide.node_id} ---")
 
         package_start_corner = node_to_divide.start_corner
-        packed_space = SpaceNode(package_start_corner, package.rotation)
+        packed_space = SpaceNode(package_start_corner, package.rotation, self.minimum_dimension)
 
         if packed_space.is_completely_inside(node_to_divide):
             # Get possible children

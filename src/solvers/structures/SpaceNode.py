@@ -3,7 +3,7 @@ import numpy as np
 
 
 class SpaceNode:
-    def __init__(self, start_corner: np.ndarray, dimensions: np.ndarray, parent=None):
+    def __init__(self, start_corner: np.ndarray, dimensions: np.ndarray, minimum_dimension: int, parent=None):
         self.node_id = None
         self.parent = parent
         self.length = dimensions[0]
@@ -14,7 +14,7 @@ class SpaceNode:
         self.end_corner = start_corner + self.dimensions
 
         self.is_leaf = True
-
+        self.minimum_dimension = minimum_dimension
         # (which node, overlap region)
         self.overlaps: List[(SpaceNode, SpaceNode)] = []
         self.children: List[SpaceNode] = []
@@ -28,7 +28,7 @@ class SpaceNode:
         # Check if there is an overlap
         if np.all(overlap_start < overlap_end):
             overlap_dimensions = overlap_end - overlap_start
-            return SpaceNode(overlap_start, overlap_dimensions)
+            return SpaceNode(overlap_start, overlap_dimensions, 40)
         else:
             # No overlap, return None or raise an exception as needed
             return None
@@ -65,48 +65,50 @@ class SpaceNode:
         space1 = SpaceNode(
             start_corner=np.array([ax, oy + ow, az]),
             dimensions=np.array([al, aw - (oy + ow - ay), ah]),
+            minimum_dimension=self.minimum_dimension
         )  # Left full
         space2 = SpaceNode(
-            start_corner=np.array([ax, ay, az]), dimensions=np.array([al, oy - ay, ah])
+            start_corner=np.array([ax, ay, az]), dimensions=np.array([al, oy - ay, ah]),minimum_dimension=self.minimum_dimension
         )  # Right full
         space3 = SpaceNode(
-            start_corner=np.array([ax, ay, az]), dimensions=np.array([ox - ax, aw, ah])
+            start_corner=np.array([ax, ay, az]), dimensions=np.array([ox - ax, aw, ah]),minimum_dimension=self.minimum_dimension
         )  # Back full
         # Front full
         space4 = SpaceNode(
             start_corner=np.array([ox + ol, ay, az]),
             dimensions=np.array([al - (ox + ol - ax), aw, ah]),
+            minimum_dimension=self.minimum_dimension
         )  # Front full
         space5 = SpaceNode(
-            start_corner=np.array([ax, ay, az]), dimensions=np.array([al, aw, oz - az])
+            start_corner=np.array([ax, ay, az]), dimensions=np.array([al, aw, oz - az]), minimum_dimension=self.minimum_dimension
         )  # Above full
         # Down full
         space6 = SpaceNode(
             start_corner=np.array([ax, ay, oz + oh]),
-            dimensions=np.array([al, aw, ah - (oz + oh - az)]),
+            dimensions=np.array([al, aw, ah - (oz + oh - az)]),minimum_dimension=self.minimum_dimension
         )  # Down full
 
-        if oy + ow < ay + aw and all(v > 0 for v in space1.dimensions):
+        if oy + ow < ay + aw and all(v >= self.minimum_dimension for v in space1.dimensions):
             updated_spaces.append(space1)
             # print(f"Appending {space1}")
 
-        if oy > ay and all(v > 40 for v in space2.dimensions):
+        if oy > ay and all(v >= self.minimum_dimension for v in space2.dimensions):
             updated_spaces.append(space2)
             # print(f"Appending {space2}")
 
-        if ox > ax and all(v > 40 for v in space3.dimensions):
+        if ox > ax and all(v >= self.minimum_dimension for v in space3.dimensions):
             updated_spaces.append(space3)
             # print(f"Appending {space3}")
 
-        if ox + ol < ax + al and all(v > 40 for v in space4.dimensions):
+        if ox + ol < ax + al and all(v >= self.minimum_dimension for v in space4.dimensions):
             updated_spaces.append(space4)
             # print(f"Appending {space4}")
 
-        if oz > az and all(v > 40 for v in space5.dimensions):
+        if oz > az and all(v >= self.minimum_dimension for v in space5.dimensions):
             updated_spaces.append(space5)
             # print(f"Appending {space5}")
 
-        if oz + oh < az + ah and all(v > 40 for v in space6.dimensions):
+        if oz + oh < az + ah and all(v >= self.minimum_dimension for v in space6.dimensions):
             updated_spaces.append(space6)
             # print(f"Appending {space6}")
 
