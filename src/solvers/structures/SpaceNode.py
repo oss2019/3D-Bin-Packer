@@ -20,6 +20,9 @@ class SpaceNode:
         self.children: List[SpaceNode] = []
         self.max_vols_in_children: List[Tuple[int, float]] = []
 
+    def __hash__(self):
+        return hash(self.node_id)
+
     def get_overlap(self, other):
         # Calculate the start and end corners of the overlap
         overlap_start = np.maximum(self.start_corner, other.start_corner)
@@ -37,6 +40,15 @@ class SpaceNode:
         return np.all(self.start_corner >= other.start_corner) and np.all(
             self.end_corner <= other.end_corner
         )
+
+    def remove_links_to(self, other):
+        new_overlap_list = []
+        for o_node, ov in self.overlaps:
+            if o_node.node_id != other.node_id:
+                new_overlap_list.append((o_node, ov))
+
+        self.overlaps = new_overlap_list
+        print(f"{self.node_id} removed links to {other.node_id}")
 
     # Unused function
     # def is_shrinkable_after_placing(self, box_overlap):
@@ -123,7 +135,7 @@ class SpaceNode:
             print("No overlap detected.")
             return
 
-        print(f"Overlap detected. Shrinking both spaces.")
+        print("Overlap detected. Shrinking both spaces.")
 
         # Get the overlap dimensions and positions
         ax, ay, az = self.start_corner

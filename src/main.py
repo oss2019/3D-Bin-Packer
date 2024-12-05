@@ -106,8 +106,9 @@ def main(uld_file, package_file, output_dir):
         print("Packing validated successfully! No overlaps")
 
     # Generate 3D plots for ULDs
-    generate_3d_plot(packer, output_dir)
+    # generate_3d_plot(packer, output_dir)
     visualize_3d_packing(packer)
+    # visualize_individual_spaces(packer)
 
     # Format and print output
     output = format_output(packed_positions, unpacked_packages, total_cost)
