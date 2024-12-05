@@ -90,23 +90,23 @@ class SpaceNode:
             updated_spaces.append(space1)
             # print(f"Appending {space1}")
 
-        if oy > ay and all(v > 0 for v in space2.dimensions):
+        if oy > ay and all(v > 40 for v in space2.dimensions):
             updated_spaces.append(space2)
             # print(f"Appending {space2}")
 
-        if ox > ax and all(v > 0 for v in space3.dimensions):
+        if ox > ax and all(v > 40 for v in space3.dimensions):
             updated_spaces.append(space3)
             # print(f"Appending {space3}")
 
-        if ox + ol < ax + al and all(v > 0 for v in space4.dimensions):
+        if ox + ol < ax + al and all(v > 40 for v in space4.dimensions):
             updated_spaces.append(space4)
             # print(f"Appending {space4}")
 
-        if oz > az and all(v > 0 for v in space5.dimensions):
+        if oz > az and all(v > 40 for v in space5.dimensions):
             updated_spaces.append(space5)
             # print(f"Appending {space5}")
 
-        if oz + oh < az + ah and all(v > 0 for v in space6.dimensions):
+        if oz + oh < az + ah and all(v > 40 for v in space6.dimensions):
             updated_spaces.append(space6)
             # print(f"Appending {space6}")
 

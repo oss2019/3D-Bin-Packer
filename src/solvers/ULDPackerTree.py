@@ -34,7 +34,7 @@ class ULDPackerTree(ULDPackerBase):
                 )
                 print(f"\n{space.node_id} is for {package.id}\n")
                 print(f"Tree {uid}")
-                st.display_tree()
+                # st.display_tree()
                 print("-" * 50)
                 # input()
                 return True, space.start_corner, uid
@@ -180,8 +180,8 @@ def run_bulk_insert_test_cases():
         # Sequentially insert packages
         for package in test["packages"]:
             packer.insert(package)
-            for st in packer.space_trees:
-                st.display_tree()
+            # for st in packer.space_trees:
+            #     st.display_tree()
             print("-" * 40)
 
         # Check for unpacked packages
