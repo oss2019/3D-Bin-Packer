@@ -27,7 +27,7 @@ class ULDPackerTree(ULDPackerBase):
         )
         self.unpacked_packages = []
 
-        self.space_trees = [(SpaceTree(u), u.id) for u in ulds]
+        self.space_trees = [(SpaceTree(u, 40), u.id) for u in ulds]
 
     def insert(self, package: Package):
         for st, uid in self.space_trees:

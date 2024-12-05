@@ -140,35 +140,32 @@ class ULDPackerMixed(ULDPackerBase):
                 # Down full
                 space6 = [ax, ay, z + height, al, aw, ah - (z + height - az)]
 
-                if y + width < ay + aw and all(v >= 40 for v in space1[3::]):
+                if y + width < ay + aw and all(v >= self.minimum_dimension for v in space1[3::]):
                     updated_spaces.append(space1)
                     # print(f"Appending {space1}")
 
-                if y > ay and all(v >= 40 for v in space2[3::]):
+                if y > ay and all(v >= self.minimum_dimension for v in space2[3::]):
                     updated_spaces.append(space2)
                     # print(f"Appending {space2}")
 
-                if x > ax and all(v >= 40 for v in space3[3::]):
+                if x > ax and all(v >= self.minimum_dimension for v in space3[3::]):
                     updated_spaces.append(space3)
                     # print(f"Appending {space3}")
 
-                if x + length < ax + al and all(v >= 40 for v in space4[3::]):
+                if x + length < ax + al and all(v >= self.minimum_dimension for v in space4[3::]):
                     updated_spaces.append(space4)
                     # print(f"Appending {space4}")
 
-                if z > az and all(v >= 40 for v in space5[3::]):
+                if z > az and all(v >= self.minimum_dimension for v in space5[3::]):
                     updated_spaces.append(space5)
                     # print(f"Appending {space5}")
 
-                if z + height < az + ah and all(v >= 40 for v in space6[3::]):
+                if z + height < az + ah and all(v >= self.minimum_dimension for v in space6[3::]):
                     updated_spaces.append(space6)
                     # print(f"Appending {space6}")
 
             else:
                 updated_spaces.append(space)
-
-        # if not package.is_priority:
-        #     updated_spaces.sort(key=lambda s: np.prod(s[3::]))
 
         self.available_spaces[uld.id] = updated_spaces
 
@@ -176,6 +173,7 @@ class ULDPackerMixed(ULDPackerBase):
         # WARNING remove this n_packs vairable its for logging
 
         n_packs = 0
+        self.minimum_dimension = min(np.min(p.dimensions) for p in self.packages)
 
         priority_packages = sorted(
             [pkg for pkg in self.packages if pkg.is_priority],
@@ -186,20 +184,9 @@ class ULDPackerMixed(ULDPackerBase):
         # WARNING Normalization not done for sorting eco_pkg
         economy_packages = sorted(
             [pkg for pkg in self.packages if not pkg.is_priority],
-            key=lambda p: p.delay_cost * (p.weight / np.prod(p.dimensions)),
+            key=lambda p: (p.delay_cost/ np.prod(p.dimensions), 1/p.weight),
             reverse=False,
         )
-
-        # half = int(len(economy_packages) / 2)
-        # economy_packages_1 = economy_packages[0:half]
-        # economy_packages_2 = economy_packages[half::-1]  # Reverse using slicing
-        #
-        # # Zip and flatten the lists
-        # flattened_packages = [
-        #     item
-        #     for pair in zip(economy_packages_1, economy_packages_2)
-        #     for item in pair
-        # ]
 
         # First pass - initial packing
         for package in priority_packages:
@@ -212,7 +199,6 @@ class ULDPackerMixed(ULDPackerBase):
                 can_fit, orientation = self._try_pack_package(
                     package, uld, space_find_policy="first_find"
                 )
-                # print(orientation)
                 if can_fit:
                     packed = True
                     # WARNING remove this print later
@@ -224,20 +210,16 @@ class ULDPackerMixed(ULDPackerBase):
             else:
                 self.packed_packages.append(package)
 
-        # sorted(
-        #     self.ulds,
-        #     key=lambda u: (u.current_weight / u.weight_limit)
-        #     + (u.current_vol_occupied / np.prod(u.dimensions)),
-        #     reverse=True,
-        # ):
-
         for package in economy_packages:
             packed = False
-            for uld in self.ulds[0:3]:
+            for uld in sorted(
+                self.ulds,
+                key=lambda u: (1 - u.current_weight / u.weight_limit),
+                reverse=False,
+            ):
                 can_fit, orientation = self._try_pack_package(
                     package, uld, space_find_policy="max_surface_area"
                 )
-                # print(orientation)
                 if can_fit:
                     packed = True
                     # WARNING remove this print later
