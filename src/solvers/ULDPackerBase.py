@@ -2,9 +2,8 @@ from typing import List, Tuple
 from dataclass.ULD import ULD
 from dataclass.Package import Package
 import numpy as np
-import itertools
 
-import pprint
+import itertools
 
 SIZE_BOUND = 5000
 
@@ -53,14 +52,18 @@ class ULDPackerBase:
         pass
 
     def _try_pack_package(
-        self, package: Package, uld: ULD, space_find_policy: str
+        self,
+        package: Package,
+        uld: ULD,
+        space_find_policy: str,
+        orientation_choose_policy: str,
     ) -> bool:
         if package.weight + uld.current_weight > uld.weight_limit:
             return False  # Exceeds weight limit
 
         # Define the package dimensions
-        # package_rotations = list(itertools.permutations(package.dimensions))
-        package_rotations = [package.dimensions]
+        package_rotations = list(itertools.permutations(package.dimensions))
+        # package_rotations = [package.dimensions]
 
         list_of_fits = []
         for orientation in package_rotations:
@@ -68,58 +71,61 @@ class ULDPackerBase:
                 uld, package, orientation, policy=space_find_policy
             )
 
-            list_of_fits.append((can_fit, position, orientation, space_index))
+            if can_fit:
+                if orientation_choose_policy == "first_find":
+                    return True, orientation
+
+                list_of_fits.append((position, orientation, space_index))
 
         # Find the element in list_of_fits with the minimum np.prod
-        minvol = None
-        best_space_index = None
-        best_orientation = None
-        best_position = None
 
-        s = self.available_spaces[uld.id]
-        for fit in list_of_fits:
-            if minvol is None and fit[0]:
-                minvol = np.prod(s[space_index][3::])
-                can_fit = fit[0]
-                best_position = fit[1]
-                best_orientation = fit[2]
-                best_space_index = fit[3]
+        if orientation_choose_policy == "min_volume":
+            minvol = None
+            best_space_index = None
+            best_orientation = None
+            best_position = None
 
-            elif minvol is not None:
-                if np.prod(s[space_index][3::]) < minvol and fit[0]:
-                    minvol = np.prod(s[space_index][3::])
-                    can_fit = fit[0]
-                    best_position = fit[1]
-                    best_orientation = fit[2]
-                    best_space_index = fit[3]
+            avail_s = self.available_spaces[uld.id]
 
-        if minvol is not None:
-            x, y, z = best_position
+            for pos, ori, sp_idx in list_of_fits:
+                if minvol is None:
+                    minvol = np.prod(avail_s[sp_idx][3::])
+                    best_position = pos
+                    best_orientation = ori
+                    best_space_index = sp_idx
 
-            uld.current_weight += package.weight
-            uld.current_vol_occupied += np.prod(package.dimensions)
+                elif np.prod(avail_s[sp_idx][3::]) < minvol:
+                    minvol = np.prod(avail_s[sp_idx][3::])
+                    best_position = pos
+                    best_orientation = ori
+                    best_space_index = sp_idx
 
-            if package.is_priority:
-                self.prio_ulds[uld.id] = True
+            if minvol is not None:
+                x, y, z = best_position
 
-            self.packed_positions.append(
-                (
-                    package.id,
-                    uld.id,
-                    x,
-                    y,
-                    z,
-                    best_orientation[0],
-                    best_orientation[1],
-                    best_orientation[2],
+                uld.current_weight += package.weight
+                uld.current_vol_occupied += np.prod(package.dimensions)
+
+                if package.is_priority:
+                    self.prio_ulds[uld.id] = True
+
+                self.packed_positions.append(
+                    (
+                        package.id,
+                        uld.id,
+                        x,
+                        y,
+                        z,
+                        best_orientation[0],
+                        best_orientation[1],
+                        best_orientation[2],
+                    )
                 )
-            )
-            self._update_available_spaces(
-                uld, best_position, best_orientation, package, best_space_index
-            )
-
-            return True, best_orientation
-        return False, (1, 1, 1)
+                self._update_available_spaces(
+                    uld, best_position, best_orientation, package, best_space_index
+                )
+                return True, best_orientation
+            return False, (1, 1, 1)
 
     def validate_packing(self) -> Tuple[bool, List[str]]:
         """Validate the packing process"""
