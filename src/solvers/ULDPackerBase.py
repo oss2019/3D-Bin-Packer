@@ -30,6 +30,7 @@ class ULDPackerBase:
             u.id: [(0, 0, 0, u.dimensions[0], u.dimensions[1], u.dimensions[2])]
             for u in self.ulds
         }
+        self.minimum_dimension = np.inf
 
     def _find_available_space(
         self, uld: ULD, package: Package, policy: str
@@ -76,18 +77,19 @@ class ULDPackerBase:
         best_orientation = None
         best_position = None
 
-        s = self.available_spaces[uld.id]
         for fit in list_of_fits:
+            s = self.available_spaces[uld.id]
+
             if minvol is None and fit[0]:
-                minvol = np.prod(s[space_index][3::])
+                minvol = np.prod(s[3::])
                 can_fit = fit[0]
                 best_position = fit[1]
                 best_orientation = fit[2]
                 best_space_index = fit[3]
 
             elif minvol is not None:
-                if np.prod(s[space_index][3::]) < minvol and fit[0]:
-                    minvol = np.prod(s[space_index][3::])
+                if np.prod(s[3::]) < minvol and fit[0]:
+                    minvol = np.prod(s[3::])
                     can_fit = fit[0]
                     best_position = fit[1]
                     best_orientation = fit[2]
@@ -119,7 +121,7 @@ class ULDPackerBase:
             )
 
             return True, best_orientation
-        return False, (1, 1, 1)
+        return False, (None, None, None)
 
     def validate_packing(self) -> Tuple[bool, List[str]]:
         """Validate the packing process"""
