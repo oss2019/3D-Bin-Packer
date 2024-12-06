@@ -70,9 +70,10 @@ class ULDPackerBase:
         """
         raise NotImplementedError("This method needs to be implemented.")
 
-    def pack(self):
+    def pack(self, packing_policy="small_first"):
         """
         Needs to be overridden. Packs according to the Derived class policies
+        :param packing_policy: The packing policy to be used.
 
         :return: None
         """
