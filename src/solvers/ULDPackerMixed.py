@@ -174,27 +174,27 @@ class ULDPackerMixed(ULDPackerBase):
                 # Down full
                 space6 = [ax, ay, z + height, al, aw, ah - (z + height - az)]
 
-                if y + width < ay + aw and all(v != 0 for v in space1[3::]):
+                if y + width < ay + aw and all(v >= self.minimum_dimension for v in space1[3::]):
                     updated_spaces.append(space1)
                     # print(f"Appending {space1}")
 
-                if y > ay and all(v != 0 for v in space2[3::]):
+                if y > ay and all(v >= self.minimum_dimension for v in space2[3::]):
                     updated_spaces.append(space2)
                     # print(f"Appending {space2}")
 
-                if x > ax and all(v != 0 for v in space3[3::]):
+                if x > ax and all(v >= self.minimum_dimension for v in space3[3::]):
                     updated_spaces.append(space3)
                     # print(f"Appending {space3}")
 
-                if x + length < ax + al and all(v != 0 for v in space4[3::]):
+                if x + length < ax + al and all(v >= self.minimum_dimension for v in space4[3::]):
                     updated_spaces.append(space4)
                     # print(f"Appending {space4}")
 
-                if z > az and all(v != 0 for v in space5[3::]):
+                if z > az and all(v >= self.minimum_dimension for v in space5[3::]):
                     updated_spaces.append(space5)
                     # print(f"Appending {space5}")
 
-                if z + height < az + ah and all(v != 0 for v in space6[3::]):
+                if z + height < az + ah and all(v >= self.minimum_dimension for v in space6[3::]):
                     updated_spaces.append(space6)
                     # print(f"Appending {space6}")
 
@@ -203,71 +203,106 @@ class ULDPackerMixed(ULDPackerBase):
 
         self.available_spaces[uld.id] = updated_spaces
 
-    def pack(self):
+    def pack(self, packing_policy="small_first"):
         n_packs = 0
+        
+        self.minimum_dimension = min([np.min(pkg.dimensions) for pkg in self.packages])
 
-        priority_packages = sorted(
-            [pkg for pkg in self.packages if pkg.is_priority],
-            key=lambda p: (np.prod(p.dimensions)),
-            reverse=True,
-        )
-
-        economy_packages = sorted(
-            [pkg for pkg in self.packages if not pkg.is_priority],
-            key=lambda p: (p.delay_cost / np.prod(p.dimensions)),
-            reverse=True,
-        )
-
-        for package in priority_packages:
-            packed = False
-            for uld in sorted(
-                self.ulds,
-                key=lambda u: np.prod(u.dimensions),
+        if packing_policy == "small_first":
+            priority_packages = sorted(
+                [pkg for pkg in self.packages if pkg.is_priority],
+                key=lambda p: (np.prod(p.dimensions)),
                 reverse=True,
-            ):
-                can_fit, orientation = self._try_pack_package(
-                    package,
-                    uld,
-                    space_find_policy="first_find",
-                    orientation_choose_policy="no_rot",
-                )
-                if can_fit:
-                    packed = True
-                    n_packs += 1
-                    print(
-                        f"Packed Priority {package.id} in {uld.id}, with orientation {tuple(orientation)}, {n_packs} "
-                    )
-                    break
-            if not packed:
-                self.unpacked_packages.append(package)
-            else:
-                self.packed_packages.append(package)
+            )
 
-        for package in economy_packages:
-            packed = False
-            for uld in sorted(
-                self.ulds,
-                key=lambda u: (1 - u.current_weight / u.weight_limit),
-                reverse=False,
-            ):
-                can_fit, orientation = self._try_pack_package(
-                    package,
-                    uld,
-                    space_find_policy="first_find",
-                    orientation_choose_policy="first_find",
-                )
-                if can_fit:
-                    packed = True
-                    # WARNING remove this print later
-                    n_packs += 1
-                    print(
-                        f"Packed Economy {package.id} in {uld.id}, with orientation {tuple(orientation)}, {n_packs} "
+            economy_packages = sorted(
+                [pkg for pkg in self.packages if not pkg.is_priority],
+                key=lambda p: (p.delay_cost / np.prod(p.dimensions), 1/p.weight*np.prod(p.dimensions)),
+                reverse=True,
+            )
+
+
+
+            for package in priority_packages:
+                packed = False
+                for uld in sorted(
+                    self.ulds,
+                    key=lambda u: np.prod(u.dimensions),
+                    reverse=True,
+                ):
+                    can_fit, orientation = self._try_pack_package(
+                        package,
+                        uld,
+                        space_find_policy="first_find",
+                        orientation_choose_policy="no_rot",
                     )
-                    break
-            if not packed:
-                self.unpacked_packages.append(package)
-            else:
-                self.packed_packages.append(package)
+                    if can_fit:
+                        packed = True
+                        n_packs += 1
+                        print(
+                            f"Packed Priority {package.id} in {uld.id}, with orientation {tuple(orientation)}, {n_packs} "
+                        )
+                        break
+                if not packed:
+                    self.unpacked_packages.append(package)
+                else:
+                    self.packed_packages.append(package)
+
+            for package in economy_packages[:50]:
+                packed = False
+                for uld in sorted(
+                    self.ulds,
+                    key=lambda u: (1 - u.current_vol_occupied / np.prod(u.dimensions)),
+                    reverse=False,
+                ):
+                    can_fit, orientation = self._try_pack_package(
+                        package,
+                        uld,
+                        space_find_policy="max_surface_area",
+                        orientation_choose_policy="min_volume",
+                    )
+                    if can_fit:
+                        packed = True
+                        # WARNING remove this print later
+                        n_packs += 1
+                        print(
+                            f"Packed Economy {package.id} in {uld.id}, with orientation {tuple(orientation)}, {n_packs} "
+                        )
+                        break
+                if not packed:
+                    self.unpacked_packages.append(package)
+                else:
+                    self.packed_packages.append(package)
+
+            for package in economy_packages[50:]:
+                packed = False
+                for uld in sorted(
+                    self.ulds,
+                    key=lambda u: (u.current_weight / u.weight_limit),
+                    reverse=True,
+                ):
+                    can_fit, orientation = self._try_pack_package(
+                        package,
+                        uld,
+                        space_find_policy="first_find",
+                        orientation_choose_policy="first_find",
+                    )
+                    if can_fit:
+                        packed = True
+                        # WARNING remove this print later
+                        n_packs += 1
+                        print(
+                            f"Packed Economy {package.id} in {uld.id}, with orientation {tuple(orientation)}, {n_packs} "
+                        )
+                        break
+                if not packed:
+                    self.unpacked_packages.append(package)
+                else:
+                    self.packed_packages.append(package)
+
+        else:
+            print("Not a suitable policy")
+            return None
 
         total_delay_cost = sum(pkg.delay_cost for pkg in self.unpacked_packages)
         priority_spread_cost = sum(
