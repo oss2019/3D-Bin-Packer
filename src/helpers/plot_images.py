@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from solvers.ULDPackerBase import ULDPackerBase
 
-
-def generate_3d_plot(packer_instance, output_dir):
+def generate_3d_plot(packer_instance: ULDPackerBase, output_dir: str):
     """
     Generates 3D plots of packed ULDs (unit load devices) and their packages, and saves them as images.
 

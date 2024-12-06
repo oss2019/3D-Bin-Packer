@@ -1,8 +1,9 @@
 import numpy as np
 import pyvista as pv
+from solvers.ULDPackerBase import ULDPackerBase
 
 
-def draw_cuboid(grid, x, y, z, length, width, height, opacity):
+def draw_cuboid(grid, x: int, y: int, z: int, length: int, width: int, height: int, opacity: float):
     """
     Creates a cuboid and adds it to the plot.
 
@@ -12,7 +13,8 @@ def draw_cuboid(grid, x, y, z, length, width, height, opacity):
     :param opacity: Opacity of the cuboid, where 1 is fully opaque and 0 is fully transparent.
     """
     # Define vertices of the cuboid in 3D space
-    points = np.array([[x, y, z],  # Bottom-left-front corner
+    points = np.array(
+        [[x, y, z],  # Bottom-left-front corner
         [x + length, y, z],  # Bottom-right-front corner
         [x + length, y + width, z],  # Bottom-right-back corner
         [x, y + width, z],  # Bottom-left-back corner
@@ -25,7 +27,8 @@ def draw_cuboid(grid, x, y, z, length, width, height, opacity):
     points = points.astype(np.float32)
 
     # Define the faces of the cuboid using the vertices (4 vertices per face)
-    faces = np.array([[4, 0, 1, 2, 3],  # Bottom face
+    faces = np.array([
+        [4, 0, 1, 2, 3],  # Bottom face
         [4, 7, 6, 5, 4],  # Top face
         [4, 0, 3, 7, 4],  # Left face
         [4, 1, 2, 6, 5],  # Right face
@@ -42,7 +45,7 @@ def draw_cuboid(grid, x, y, z, length, width, height, opacity):
     grid.add_mesh(cuboid, color=color, show_edges=True, opacity=opacity, edge_color="black")
 
 
-def visualize_3d_packing(packer_instance):
+def visualize_3d_packing(packer_instance: ULDPackerBase):
     """
     Visualizes the packed 3D space by adding containers (ULDs) and their packed packages.
 
@@ -56,7 +59,8 @@ def visualize_3d_packing(packer_instance):
         ULD_L, ULD_W, ULD_H = uld.dimensions
 
         # Define the 3D points for the ULD container box
-        container_points = np.array([[0, 0, 0],  # Bottom-left-front corner
+        container_points = np.array([
+            [0, 0, 0],  # Bottom-left-front corner
             [ULD_L, 0, 0],  # Bottom-right-front corner
             [ULD_L, ULD_W, 0],  # Bottom-right-back corner
             [0, ULD_W, 0],  # Bottom-left-back corner
@@ -67,7 +71,8 @@ def visualize_3d_packing(packer_instance):
         ], dtype=np.float32, )
 
         # Define the faces of the ULD container
-        container_faces = np.hstack([[4, 0, 1, 2, 3],  # Bottom face
+        container_faces = np.hstack([
+            [4, 0, 1, 2, 3],  # Bottom face
             [4, 7, 6, 5, 4],  # Top face
             [4, 0, 3, 7, 4],  # Left face
             [4, 1, 2, 6, 5],  # Right face
@@ -94,7 +99,7 @@ def visualize_3d_packing(packer_instance):
         plotter.show(title=title)
 
 
-def visualize_individual_spaces(packer_instance):
+def visualize_individual_spaces(packer_instance: ULDPackerBase):
     """
     Visualizes the individual empty spaces available in the ULDs (unit load devices).
 
@@ -112,7 +117,8 @@ def visualize_individual_spaces(packer_instance):
                 ULD_L, ULD_W, ULD_H = uld.dimensions
 
                 # Define the 3D points for the ULD container box
-                container_points = np.array([[0, 0, 0],  # Bottom-left-front corner
+                container_points = np.array([
+                    [0, 0, 0],  # Bottom-left-front corner
                     [ULD_L, 0, 0],  # Bottom-right-front corner
                     [ULD_L, ULD_W, 0],  # Bottom-right-back corner
                     [0, ULD_W, 0],  # Bottom-left-back corner
@@ -122,7 +128,8 @@ def visualize_individual_spaces(packer_instance):
                     [0, ULD_W, ULD_H],  # Top-left-back corner
                 ], dtype=np.float32, )
 
-                container_faces = np.hstack([[4, 0, 1, 2, 3],  # Bottom face
+                container_faces = np.hstack([
+                    [4, 0, 1, 2, 3],  # Bottom face
                     [4, 7, 6, 5, 4],  # Top face
                     [4, 0, 3, 7, 4],  # Left face
                     [4, 1, 2, 6, 5],  # Right face
