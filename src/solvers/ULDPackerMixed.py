@@ -1,9 +1,11 @@
+import logging
+from sys import stderr
 from typing import List, Tuple
 from dataclass.ULD import ULD
 from dataclass.Package import Package
 import numpy as np
 from .ULDPackerBasicOverlap import ULDPackerBasicOverlap
-
+logging.basicConfig(level=logging.INFO)
 SIZE_BOUND = 5000
 
 
@@ -93,14 +95,22 @@ class ULDPackerMixed(ULDPackerBasicOverlap):
             else:
                 self.packed_packages.append(package)
 
-        # Pack the economy packages first
-        for package in economy_packages[:50]:
-            packed = False
-            for uld in sorted(
+        ulds = sorted(
                 self.ulds,
                 key=lambda u: (1 - u.current_vol_occupied / np.prod(u.dimensions)),
                 reverse=False,
-            ):
+            )
+        # Pack the economy packages first
+        for package in economy_packages:
+            packed = False
+            filter(lambda u: (1 - u.current_weight / u.weight_limit) >= 35, ulds)
+            if len(ulds) < 1:
+                ulds = sorted(
+                    self.ulds,
+                    key=lambda u: (1 - u.current_vol_occupied / np.prod(u.dimensions)),
+                    reverse=False,
+                )
+            for uld in ulds:
                 can_fit, orientation = self._try_pack_package(
                     package,
                     uld,
@@ -118,37 +128,14 @@ class ULDPackerMixed(ULDPackerBasicOverlap):
                 self.unpacked_packages.append(package)
             else:
                 self.packed_packages.append(package)
-
-        for package in economy_packages[50:]:
-            packed = False
-            for uld in sorted(
-                self.ulds,
-                key=lambda u: (u.current_weight / u.weight_limit),
-                reverse=True,
-            ):
-                can_fit, orientation = self._try_pack_package(
-                    package,
-                    uld,
-                    space_find_policy="first_find",
-                    orientation_choose_policy="first_find",
-                )
-                if can_fit:
-                    packed = True
-                    n_packs += 1
-                    print(
-                        f"Packed Economy {package.id} in {uld.id}, with orientation {tuple(orientation)}, {n_packs} "
-                    )
-                    break
-            if not packed:
-                self.unpacked_packages.append(package)
-            else:
-                self.packed_packages.append(package)
+                economy_packages = economy_packages[1:]
 
         total_delay_cost = sum(pkg.delay_cost for pkg in self.unpacked_packages)
         priority_spread_cost = sum(
             self.priority_spread_cost for is_prio_uld in self.prio_ulds if is_prio_uld
         )
         total_cost = total_delay_cost + priority_spread_cost
+        logging.info(f"{total_delay_cost} + {priority_spread_cost} = {total_cost}")
 
         return (
             self.packed_positions,
