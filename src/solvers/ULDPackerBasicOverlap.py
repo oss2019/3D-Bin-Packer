@@ -216,7 +216,7 @@ class ULDPackerBasicOverlap(ULDPackerBase):
                     package,
                     uld,
                     space_find_policy="first_find",
-                    orientation_choose_policy="min_volume",
+                    orientation_choose_policy="no_rot",
                 )
                 if can_fit:
                     packed = True
@@ -238,7 +238,7 @@ class ULDPackerBasicOverlap(ULDPackerBase):
                 can_fit, orientation = self._try_pack_package(
                     package,
                     uld,
-                    space_find_policy="first_find",
+                    space_find_policy="max_surface_area",
                     orientation_choose_policy="min_volume",
                 )
                 if can_fit:

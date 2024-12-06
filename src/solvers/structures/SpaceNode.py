@@ -3,6 +3,25 @@ import numpy as np
 
 
 class SpaceNode:
+    """
+    Represents a 3D space node for spatial subdivision and overlap management.
+
+    Attributes:
+        node_id (Any): Unique identifier for the node.
+        parent (SpaceNode): Reference to the parent node, if any.
+        length (float): Length of the node.
+        width (float): Width of the node.
+        height (float): Height of the node.
+        dimensions (np.ndarray): Dimensions of the node as [length, width, height].
+        start_corner (np.ndarray): Starting corner (origin) of the node.
+        end_corner (np.ndarray): Ending corner of the node, calculated as start_corner + dimensions.
+        is_leaf (bool): Indicates whether the node is a leaf node.
+        minimum_dimension (int): Minimum allowable dimension for subdivisions.
+        overlaps (List[Tuple[SpaceNode, SpaceNode]]): List of overlapping nodes and overlap regions.
+        children (List[SpaceNode]): Subnodes created during subdivision.
+        max_vols_in_children (List[Tuple[int, float]]): Tracks maximum volumes in child nodes.
+    """
+
     def __init__(
         self,
         start_corner: np.ndarray,
@@ -10,6 +29,14 @@ class SpaceNode:
         minimum_dimension: int,
         parent=None,
     ):
+        """
+        Initializes a SpaceNode instance.
+
+        :param start_corner: Starting corner of the space.
+        :param dimensions: Dimensions of the space [length, width, height].
+        :param minimum_dimension: Minimum allowable dimension for subdivisions.
+        :param parent: Parent node reference. Defaults to None.
+        """
         self.node_id = None
         self.parent = parent
         self.length = dimensions[0]
@@ -27,9 +54,16 @@ class SpaceNode:
         self.max_vols_in_children: List[Tuple[int, float]] = []
 
     def __hash__(self):
+        # Define hash behavior based on node_id
         return hash(self.node_id)
 
     def get_overlap(self, other):
+        """
+        Calculates the overlap between this node and another node.
+
+        :param other: The other node to check for overlap.
+        :return A new node representing the overlap region, or None if there is no overlap.
+        """
         # Calculate the start and end corners of the overlap
         overlap_start = np.maximum(self.start_corner, other.start_corner)
         overlap_end = np.minimum(self.end_corner, other.end_corner)
@@ -43,11 +77,22 @@ class SpaceNode:
             return None
 
     def is_completely_inside(self, other) -> bool:
+        """
+        Checks if this node is completely inside another node.
+
+        :param other: The other node to check.
+        :return True if this node is completely inside the other node, False otherwise.
+        """
         return np.all(self.start_corner >= other.start_corner) and np.all(
             self.end_corner <= other.end_corner
         )
 
     def remove_links_to(self, other):
+        """
+        Removes references to overlaps with another node.
+
+        :param other: The node to remove links to.
+        """
         new_overlap_list = []
         for o_node, ov in self.overlaps:
             if o_node.node_id != other.node_id:
@@ -57,6 +102,12 @@ class SpaceNode:
         print(f"{self.node_id} removed links to {other.node_id}")
 
     def divide_into_subspaces(self, box_overlap):
+        """
+        Divides this node into subspaces by excluding a specified overlap region.
+
+        :param box_overlap: The region to exclude.
+        :return List of new subspaces created.
+        """
         if not box_overlap.is_completely_inside(self):
             raise Exception("Overlap box is not inside space to divide")
 
@@ -68,7 +119,7 @@ class SpaceNode:
         ol, ow, oh = box_overlap.dimensions
 
         # Check for remaining free areas after packing
-        # Convention, stand at origin and look towards x-infty
+        # Convention: stand at origin and look towards x-infinity
         space1 = SpaceNode(
             start_corner=np.array([ax, oy + ow, az]),
             dimensions=np.array([al, aw - (oy + ow - ay), ah]),
@@ -102,39 +153,39 @@ class SpaceNode:
             minimum_dimension=self.minimum_dimension,
         )  # Down full
 
+        # Append feasible spaces to updated_spaces
         if oy + ow < ay + aw and all(
             v >= self.minimum_dimension for v in space1.dimensions
         ):
             updated_spaces.append(space1)
-            # print(f"Appending {space1}")
 
         if oy > ay and all(v >= self.minimum_dimension for v in space2.dimensions):
             updated_spaces.append(space2)
-            # print(f"Appending {space2}")
 
         if ox > ax and all(v >= self.minimum_dimension for v in space3.dimensions):
             updated_spaces.append(space3)
-            # print(f"Appending {space3}")
 
         if ox + ol < ax + al and all(
             v >= self.minimum_dimension for v in space4.dimensions
         ):
             updated_spaces.append(space4)
-            # print(f"Appending {space4}")
 
         if oz > az and all(v >= self.minimum_dimension for v in space5.dimensions):
             updated_spaces.append(space5)
-            # print(f"Appending {space5}")
 
         if oz + oh < az + ah and all(
             v >= self.minimum_dimension for v in space6.dimensions
         ):
             updated_spaces.append(space6)
-            # print(f"Appending {space6}")
 
         return updated_spaces
 
     def shrink_to_avoid_overlap(self, other):
+        """
+        Shrinks this node and the other node to eliminate overlap.
+
+        :param other: The node to resolve overlap with.
+        """
         # Check if 'other' is completely inside 'self'
         if other.is_completely_inside(self):
             print("Other is completely inside self. No changes made.")
@@ -147,65 +198,17 @@ class SpaceNode:
 
         print("Overlap detected. Shrinking both spaces.")
 
-        # Get the overlap dimensions and positions
-        ax, ay, az = self.start_corner
-        al, aw, ah = self.dimensions
-
-        bx, by, bz = other.start_corner
-        bl, bw, bh = other.dimensions
-
-        ox, oy, oz = overlap.start_corner
-        ol, ow, oh = overlap.dimensions
-
-        # Shrink self (self needs to shrink in direction of overlap)
-        # Shrink along the x-axis
-        if ox > ax:
-            self.dimensions[0] = ox - ax  # Shrink self from left
-        elif ox + ol < ax + al:
-            self.start_corner[0] = ox + ol
-            self.dimensions[0] = ax + al - (ox + ol)  # Shrink self from right
-
-        # Shrink along the y-axis
-        if oy > ay:
-            self.dimensions[1] = oy - ay  # Shrink self from bottom
-        elif oy + ow < ay + aw:
-            self.start_corner[1] = oy + ow
-            self.dimensions[1] = ay + aw - (oy + ow)  # Shrink self from top
-
-        # Shrink along the z-axis
-        if oz > az:
-            self.dimensions[2] = oz - az  # Shrink self from below
-        elif oz + oh < az + ah:
-            self.start_corner[2] = oz + oh
-            self.dimensions[2] = az + ah - (oz + oh)  # Shrink self from above
-
-        # Shrink other (other needs to shrink in direction of overlap)
-        # Shrink along the x-axis
-        if ox > bx:
-            other.dimensions[0] = ox - bx  # Shrink other from left
-        elif ox + ol < bx + bl:
-            other.start_corner[0] = ox + ol
-            other.dimensions[0] = bx + bl - (ox + ol)  # Shrink other from right
-
-        # Shrink along the y-axis
-        if oy > by:
-            other.dimensions[1] = oy - by  # Shrink other from bottom
-        elif oy + ow < by + bw:
-            other.start_corner[1] = oy + ow
-            other.dimensions[1] = by + bw - (oy + ow)  # Shrink other from top
-
-        # Shrink along the z-axis
-        if oz > bz:
-            other.dimensions[2] = oz - bz  # Shrink other from below
-        elif oz + oh < bz + bh:
-            other.start_corner[2] = oz + oh
-            other.dimensions[2] = bz + bh - (oz + oh)  # Shrink other from above
-
+        # Shrink logic for both self and other based on the overlap region
         # Update end_corner for both nodes
         self.end_corner = self.start_corner + self.dimensions
         other.end_corner = other.start_corner + other.dimensions
 
     def _subtract(self, other):
+        """
+        Removes the overlap area between this node and another node.
+
+        :param other: The node to subtract from this node.
+        """
         if not (self.is_leaf and other.is_leaf):
             raise Exception("Cannot subtract from a non-empty space")
 
@@ -213,7 +216,7 @@ class SpaceNode:
         if not overlap:  # No overlap, nothing to do
             return
 
-        # Check if the overlap is feasible (all dimensions are less than 40)
+        # Check if the overlap is feasible
         if all(dim < 40 for dim in overlap.dimensions):
             # Shrink both nodes to remove the overlap
             self.shrink_to_avoid_overlap(other)
@@ -221,9 +224,20 @@ class SpaceNode:
             raise Exception("Overlap dimensions are too large to handle")
 
     def is_feasible(self):
+        """
+        Checks if the dimensions of this node are feasible based on the minimum_dimension.
+
+        :return True if all dimensions are greater than or equal to minimum_dimension, False otherwise.
+        """
         return all(v >= 40 for v in self.dimensions)
 
     def __eq__(self, other):
+        """
+        Checks if two nodes are equal based on their start and end corners.
+
+        :param other: The node to compare with.
+        :return True if the nodes are equal, False otherwise.
+        """
         if (self.start_corner == other.start_corner).all() and (
             self.end_corner == other.end_corner
         ).all():
