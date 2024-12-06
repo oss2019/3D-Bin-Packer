@@ -5,6 +5,11 @@ import numpy as np
 from .ULDPackerBase import ULDPackerBase
 from .structures.SpaceTree import SpaceTree
 
+import builtins
+
+# This is to disable prints
+builtins.print = lambda *args, **kwargs: None
+
 
 class ULDPackerTree(ULDPackerBase):
     def __init__(
@@ -28,7 +33,7 @@ class ULDPackerTree(ULDPackerBase):
         for st, uid in self.space_trees:
             space = st.search(package, search_policy="bfs")
             if space is not None:
-                st.divide_node_into_children_v3(
+                st.place_package_in(
                     space,
                     package,
                 )

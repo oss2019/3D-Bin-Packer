@@ -35,9 +35,7 @@ def generate_3d_plot(packer_instance, output_dir):
             height,
         ) in packer_instance.packed_positions:
             if uld.id == uld_id:
-                package = next(
-                    pkg for pkg in packer_instance.packages if pkg.id == package_id
-                )
+                next(pkg for pkg in packer_instance.packages if pkg.id == package_id)
 
                 # Create vertices for the package
                 vertices = [
@@ -73,7 +71,7 @@ def generate_3d_plot(packer_instance, output_dir):
                     )
                 )
 
-        # Plot each package
+        # Plot each space
         # lsp = packer_instance.get_list_of_spaces(uld.id)
         # if lsp is not None:
         #     for (
@@ -123,4 +121,4 @@ def generate_3d_plot(packer_instance, output_dir):
 
         # Save the 3D plot as an image
         plt.savefig(f"{output_dir}/packed_uld_{uld.id}.png")
-        # plt.show()
+        plt.show()

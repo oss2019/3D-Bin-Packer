@@ -3,6 +3,10 @@ from dataclass.ULD import ULD
 from dataclass.Package import Package
 import numpy as np
 from .ULDPackerBase import ULDPackerBase
+import builtins
+
+# This is to disable prints
+builtins.print = lambda *args, **kwargs: None
 
 SIZE_BOUND = 5000
 
@@ -183,7 +187,9 @@ class ULDPackerBasicOverlap(ULDPackerBase):
         # WARNING Normalization not done for sorting eco_pkg
         economy_packages = sorted(
             [pkg for pkg in self.packages if not pkg.is_priority],
-            key=lambda p: p.delay_cost / np.prod(p.dimensions),
+            # key=lambda p: p.delay_cost
+            # / (np.prod(p.dimensions / 100) / 1.4 + (p.weight / 270)),
+            key=lambda p: (p.delay_cost / np.prod(p.dimensions)),
             reverse=True,
         )
 
@@ -196,7 +202,10 @@ class ULDPackerBasicOverlap(ULDPackerBase):
                 reverse=True,
             ):
                 can_fit, orientation = self._try_pack_package(
-                    package, uld, space_find_policy="first_find"
+                    package,
+                    uld,
+                    space_find_policy="first_find",
+                    orientation_choose_policy="min_volume",
                 )
                 if can_fit:
                     packed = True
@@ -216,11 +225,14 @@ class ULDPackerBasicOverlap(ULDPackerBase):
                 key=lambda u: (1 - u.current_weight / u.weight_limit),
                 reverse=False,
             ):
-                print(
-                    self._try_pack_package(package, uld, space_find_policy="first_find")
-                )
+                # print(
+                #     self._try_pack_package(package, uld, space_find_policy="first_find")
+                # )
                 can_fit, orientation = self._try_pack_package(
-                    package, uld, space_find_policy="first_find"
+                    package,
+                    uld,
+                    space_find_policy="first_find",
+                    orientation_choose_policy="min_volume",
                 )
                 if can_fit:
                     packed = True
