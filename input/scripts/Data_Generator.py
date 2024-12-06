@@ -3,43 +3,49 @@ import math
 import pandas as pd
 import matplotlib.pyplot as plt
 import random
+import sys
 
 def generate_packages(volumes):
     cubes = []
     cuboids = []
     key = 0
     for V in volumes:
-            delta = (V**(1/3) + ((V**(1/3))/5)* np.random.randn()) 
+            delta = (V**(1/3) + ((V**(1/3))*5)* np.random.randn())
             if (key % 2 == 0):
               # Cube dimensions
               length = int((V + delta)**(1/3))
-              delta = (V**(1/3) + ((V**(1/3))/5)* np.random.randn()) 
+              delta = (V**(1/3) + ((V**(1/3))*5)* np.random.randn())
               width = int((V + delta)**(1/3))
-              delta = (V**(1/3) + ((V**(1/3))/5)* np.random.randn()) 
+              delta = (V**(1/3) + ((V**(1/3))*5)* np.random.randn())
               height = int((V + delta)**(1/3))
               cubes.append((length, width, height))
-            if (key % 2 == 1):  
+            if (key % 2 == 1):
               # Cuboid dimensions
               base = int(((V + delta)**(1/3)) / math.sqrt(2))
-              delta = (V**(1/3) + ((V**(1/3))/5)* np.random.randn()) 
+              delta = (V**(1/3) + ((V**(1/3))*5)* np.random.randn())
               base2 = int(((V + delta)**(1/3)) / math.sqrt(2))
-              delta = (V**(1/3) + ((V**(1/3))/5)* np.random.randn()) 
+              delta = (V**(1/3) + ((V**(1/3))*5)* np.random.randn())
               height = 2 * base + delta
               cuboids.append((base, base2, 2 * base))
-            key += 1  
-    
+            key += 1
+
     return cubes, cuboids
-  
-csv_file = 'data.csv'  # Replace with your actual file path
+
+if len(sys.argv) != 3:
+    print(f"Usage: python {sys.argv[0]} <in-file> <out-file>")
+    exit(1)
+
+csv_file = sys.argv[1]  # Replace with your actual file path
+out_file = sys.argv[2]
 data = pd.read_csv(csv_file)
 volumes = data['Volume'].tolist()
 weights = data['Weight'].tolist()
 cubes, cuboids = generate_packages(volumes)
-with open('packages.csv', 'w') as f:
+with open(out_file, 'w') as f:
     # Write the header
-    output = "Id,Length,Width,Height,Weight,Type,Cost of Delay"
+    output = "Package Identifier,Length (cm),Width (cm),Height (cm),Weight (kg),Type (P/E),Cost of Delay"
     print(output, file=f)
-    
+
     # Initialize a counter for unique IDs
     package_id = 1
     types = ['Economy'] * (len(cubes) + len(cuboids))  # Start by assuming all packages are Economy
@@ -50,8 +56,8 @@ with open('packages.csv', 'w') as f:
 
     # Assign "Priority" to the selected indices
     for i in priority_indices:
-        types[i] = 'Priority'    
-    
+        types[i] = 'Priority'
+
     # Write cubes with IDs
     for i, cube in enumerate(cubes):
         weight = int(weights[i])  # Serial assignment of weights
@@ -60,10 +66,10 @@ with open('packages.csv', 'w') as f:
             cost_of_delay = random.randint(60, 200)  # Random delay cost between 60 and 200 for Economy
         else:
             cost_of_delay = '-'
-        output = f"P-{package_id},{cube[0]},{cube[1]},{cube[2]},{weight},{package_type},{cost_of_delay}"
+        output = f"P-{package_id},{cube[0]},{cube[1]},{cube[2]},{weight % 300 + 10},{package_type},{cost_of_delay}"
         print(output, file=f)
         package_id += 1
-    
+
     # Assign weights to cuboids
     for i, cuboid in enumerate(cuboids):
         weight = int(weights[len(cubes) + i])  # Continue from where cubes ended
@@ -74,4 +80,4 @@ with open('packages.csv', 'w') as f:
             cost_of_delay = '-'
         output = f"P-{package_id},{cuboid[0]},{cuboid[1]},{cuboid[2]},{weight},{package_type},{cost_of_delay}"
         print(output, file=f)
-        package_id += 1   
+        package_id += 1

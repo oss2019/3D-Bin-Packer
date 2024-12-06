@@ -10,6 +10,8 @@ from helpers.plot_images import generate_3d_plot
 from helpers.visualize import visualize_3d_packing
 import numpy as np
 
+NOPRINT = False
+
 
 # Read data from CSV
 def read_data_from_csv(
@@ -93,10 +95,12 @@ def main(uld_file, package_file, output_dir):
     # Initialize the ULDPacker with multiple passes
     packer = ULDPacker(ulds, packages, priority_spread_cost)
 
+    global NOPRINT
     import builtins
-
     original_print = builtins.print
-    builtins.print = lambda *args, **kwargs: None
+
+    if NOPRINT:
+        builtins.print = lambda *args, **kwargs: None
 
     # Start packing
     (
