@@ -69,58 +69,58 @@ def generate_3d_plot(packer_instance, output_dir):
                         faces,
                         facecolors=color,
                         edgecolors="black",
-                        alpha=0,
+                        alpha=0.7,
                     )
                 )
 
         # Plot each package
-        lsp = packer_instance.get_list_of_spaces(uld.id)
-        if lsp is not None:
-            for (
-                x,
-                y,
-                z,
-                length,
-                width,
-                height,
-            ) in lsp:
-                # Create vertices for the package
-                vertices = [
-                    [x, y, z],
-                    [x + length, y, z],
-                    [x + length, y + width, z],
-                    [x, y + width, z],
-                    [x, y, z + height],
-                    [x + length, y, z + height],
-                    [x + length, y + width, z + height],
-                    [x, y + width, z + height],
-                ]
+        # lsp = packer_instance.get_list_of_spaces(uld.id)
+        # if lsp is not None:
+        #     for (
+        #         x,
+        #         y,
+        #         z,
+        #         length,
+        #         width,
+        #         height,
+        #     ) in lsp:
+        #         # Create vertices for the package
+        #         vertices = [
+        #             [x, y, z],
+        #             [x + length, y, z],
+        #             [x + length, y + width, z],
+        #             [x, y + width, z],
+        #             [x, y, z + height],
+        #             [x + length, y, z + height],
+        #             [x + length, y + width, z + height],
+        #             [x, y + width, z + height],
+        #         ]
 
-                # Define the faces of the package
-                faces = [
-                    [vertices[0], vertices[1], vertices[5], vertices[4]],
-                    [vertices[1], vertices[2], vertices[6], vertices[5]],
-                    [vertices[2], vertices[3], vertices[7], vertices[6]],
-                    [vertices[3], vertices[0], vertices[4], vertices[7]],
-                    [vertices[0], vertices[1], vertices[2], vertices[3]],
-                    [vertices[4], vertices[5], vertices[6], vertices[7]],
-                ]
+        #         # Define the faces of the package
+        #         faces = [
+        #             [vertices[0], vertices[1], vertices[5], vertices[4]],
+        #             [vertices[1], vertices[2], vertices[6], vertices[5]],
+        #             [vertices[2], vertices[3], vertices[7], vertices[6]],
+        #             [vertices[3], vertices[0], vertices[4], vertices[7]],
+        #             [vertices[0], vertices[1], vertices[2], vertices[3]],
+        #             [vertices[4], vertices[5], vertices[6], vertices[7]],
+        #         ]
 
-            # Assign a color to the package
-            random_int += 1
-            color = plt.cm.Paired(random_int % 12)
-            ax.add_collection3d(
-                Poly3DCollection(
-                    faces,
-                    facecolors=color,
-                    edgecolors="black",
-                    alpha=0.3,
-                )
-            )
+        #     # Assign a color to the package
+        #     random_int += 1
+        #     color = plt.cm.Paired(random_int % 12)
+        #     ax.add_collection3d(
+        #         Poly3DCollection(
+        #             faces,
+        #             facecolors=color,
+        #             edgecolors="black",
+        #             alpha=0.3,
+        #         )
+        #     )
 
         # Set the view angle
         ax.view_init(elev=35, azim=45)  # Looking at (0,0,0) from ~(1,1,1)
 
         # Save the 3D plot as an image
         plt.savefig(f"{output_dir}/packed_uld_{uld.id}.png")
-        plt.show()
+        # plt.show()

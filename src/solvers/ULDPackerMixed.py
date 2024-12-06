@@ -140,27 +140,27 @@ class ULDPackerMixed(ULDPackerBase):
                 # Down full
                 space6 = [ax, ay, z + height, al, aw, ah - (z + height - az)]
 
-                if y + width < ay + aw and all(v >= self.minimum_dimension for v in space1[3::]):
+                if y + width < ay + aw and all(v != 0 for v in space1[3::]):
                     updated_spaces.append(space1)
                     # print(f"Appending {space1}")
 
-                if y > ay and all(v >= self.minimum_dimension for v in space2[3::]):
+                if y > ay and all(v != 0 for v in space2[3::]):
                     updated_spaces.append(space2)
                     # print(f"Appending {space2}")
 
-                if x > ax and all(v >= self.minimum_dimension for v in space3[3::]):
+                if x > ax and all(v != 0 for v in space3[3::]):
                     updated_spaces.append(space3)
                     # print(f"Appending {space3}")
 
-                if x + length < ax + al and all(v >= self.minimum_dimension for v in space4[3::]):
+                if x + length < ax + al and all(v != 0 for v in space4[3::]):
                     updated_spaces.append(space4)
                     # print(f"Appending {space4}")
 
-                if z > az and all(v >= self.minimum_dimension for v in space5[3::]):
+                if z > az and all(v != 0 for v in space5[3::]):
                     updated_spaces.append(space5)
                     # print(f"Appending {space5}")
 
-                if z + height < az + ah and all(v >= self.minimum_dimension for v in space6[3::]):
+                if z + height < az + ah and all(v != 0 for v in space6[3::]):
                     updated_spaces.append(space6)
                     # print(f"Appending {space6}")
 
@@ -173,19 +173,18 @@ class ULDPackerMixed(ULDPackerBase):
         # WARNING remove this n_packs vairable its for logging
 
         n_packs = 0
-        self.minimum_dimension = min(np.min(p.dimensions) for p in self.packages)
 
         priority_packages = sorted(
             [pkg for pkg in self.packages if pkg.is_priority],
-            key=lambda p: np.prod(p.dimensions),
+            key=lambda p: (np.prod(p.dimensions)), 
             reverse=True,
         )
 
         # WARNING Normalization not done for sorting eco_pkg
         economy_packages = sorted(
             [pkg for pkg in self.packages if not pkg.is_priority],
-            key=lambda p: (p.delay_cost/ np.prod(p.dimensions), 1/p.weight),
-            reverse=False,
+            key=lambda p: (p.delay_cost / np.prod(p.dimensions)),
+            reverse=True,
         )
 
         # First pass - initial packing
@@ -218,7 +217,7 @@ class ULDPackerMixed(ULDPackerBase):
                 reverse=False,
             ):
                 can_fit, orientation = self._try_pack_package(
-                    package, uld, space_find_policy="max_surface_area"
+                    package, uld, space_find_policy="first_find"
                 )
                 if can_fit:
                     packed = True
@@ -230,24 +229,6 @@ class ULDPackerMixed(ULDPackerBase):
                 self.unpacked_packages.append(package)
             else:
                 self.packed_packages.append(package)
-
-        self.unpacked_packages.sort(key=lambda p: p.delay_cost, reverse=True)
-        for package in economy_packages:
-            if package in self.unpacked_packages:
-                packed = False
-                for uld in self.ulds:
-                    can_fit, orientation = self._try_pack_package(
-                        package, uld, space_find_policy="first_find"
-                    )
-                    # print(orientation)
-                    if can_fit:
-                        packed = True
-                        # WARNING remove this print later
-                        n_packs += 1
-                        print(f"Packed Economy {package.id} in {uld.id}, {n_packs}")
-                        break
-                if packed:
-                    self.unpacked_packages.remove(package)
 
         total_delay_cost = sum(pkg.delay_cost for pkg in self.unpacked_packages)
         priority_spread_cost = sum(
