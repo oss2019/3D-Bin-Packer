@@ -258,7 +258,6 @@ class ULDPackerMixed(ULDPackerBase):
                 )
                 if can_fit:
                     packed = True
-                    # WARNING remove this print later
                     n_packs += 1
                     print(
                         f"Packed Economy {package.id} in {uld.id}, with orientation {tuple(orientation)}, {n_packs} "

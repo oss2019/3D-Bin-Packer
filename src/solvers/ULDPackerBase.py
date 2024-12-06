@@ -4,8 +4,6 @@ from dataclass.Package import Package
 import numpy as np
 import itertools
 
-SIZE_BOUND = 5000
-
 
 # Define the ULDPacker class
 class ULDPackerBase:
@@ -105,15 +103,15 @@ class ULDPackerBase:
         if package.weight + uld.current_weight > uld.weight_limit:
             return False, (None, None, None)  # Exceeds weight limit
 
-        # Define the package dimensions
-
         if orientation_choose_policy == "no_rot":
+            # The package is taken as is and checked for fit inside the ULD
             orientation = package.dimensions
 
             can_fit, position, space_index = self._find_available_space(
                 uld, package, orientation, policy=space_find_policy
             )
 
+            # Update the state of the ULD if package fits
             if can_fit:
                 uld.current_weight += package.weight
                 uld.current_vol_occupied += np.prod(package.dimensions)
@@ -142,6 +140,8 @@ class ULDPackerBase:
             return False, (None, None, None)
 
         if orientation_choose_policy == "first_find":
+            # All orientations of the package are checked and the first one
+            # which is valid to pack is used
             package_rotations = list(itertools.permutations(package.dimensions))
 
             for orientation in package_rotations:
@@ -149,6 +149,7 @@ class ULDPackerBase:
                     uld, package, orientation, policy=space_find_policy
                 )
 
+                # If package fits, update the state of the ULD
                 if can_fit:
                     uld.current_weight += package.weight
                     uld.current_vol_occupied += np.prod(package.dimensions)
@@ -177,11 +178,11 @@ class ULDPackerBase:
             return False, (None, None, None)
 
         elif orientation_choose_policy == "min_volume":
-            # Create list of possible orientations and fits based on space_find_policy
-            # Choose one with minimum volume
+            # All orientations of the package are checked and the space with
+            # minimum volume is used
             package_rotations = list(itertools.permutations(package.dimensions))
             list_of_fits = []
-            minvol = None
+            minvol = np.inf
             best_space_index = None
             best_orientation = None
             best_position = None
@@ -197,19 +198,14 @@ class ULDPackerBase:
             avail_s = self.available_spaces[uld.id]
 
             for pos, ori, sp_idx in list_of_fits:
-                if minvol is None:
+                if np.prod(avail_s[sp_idx][3::]) < minvol:
                     minvol = np.prod(avail_s[sp_idx][3::])
                     best_position = pos
                     best_orientation = ori
                     best_space_index = sp_idx
 
-                elif np.prod(avail_s[sp_idx][3::]) < minvol:
-                    minvol = np.prod(avail_s[sp_idx][3::])
-                    best_position = pos
-                    best_orientation = ori
-                    best_space_index = sp_idx
-
-            if minvol is not None:
+            # If a minimum volume is found, place the package there
+            if minvol != np.inf:
                 x, y, z = best_position
 
                 uld.current_weight += package.weight
@@ -333,17 +329,3 @@ class ULDPackerBase:
                     priority_count_per_uld[uld_id] = 0
                 priority_count_per_uld[uld_id] += 1
         return priority_count_per_uld
-
-        # Multi-pass strategy to optimize packing
-        # for pass_num in range(self.max_passes - 1):  # Exclude first pass
-        #     # Try to repack packages into available spaces
-        #     for package in self.unpacked_packages:
-        #         packed = False
-        #         for uld in self.ulds:
-        #             if self._try_pack_package(
-        #                 package, uld, space_find_policy="first_find"
-        #             ):
-        #                 packed = True
-        #                 break
-        #         if packed:
-        #             self.unpacked_packages.remove(package)

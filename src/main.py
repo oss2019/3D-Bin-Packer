@@ -15,6 +15,15 @@ import numpy as np
 def read_data_from_csv(
     uld_file: str, package_file: str
 ) -> Tuple[List[ULD], List[Package]]:
+    """
+    Reads data from the specified CSV files and returns lists of ULD and Package objects.
+
+    :param uld_file: ULD data file.
+    :param package_file: Package data file.
+
+    :return: A tuple containing two lists: the first list contains ULD objects,
+             and the second list contains Package objects.
+    """
     uld_data = pd.read_csv(uld_file, comment="#")
     package_data = pd.read_csv(package_file, comment="#")
 
