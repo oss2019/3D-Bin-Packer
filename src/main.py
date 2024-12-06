@@ -3,6 +3,7 @@
 import pandas as pd
 from typing import List, Tuple
 import sys
+import builtins
 
 from dataclass.Package import Package
 from dataclass.ULD import ULD
@@ -87,7 +88,6 @@ def main(uld_file, package_file, output_dir):
     # Initialize the ULDPacker with multiple passes
     packer = ULDPacker(ulds, packages, priority_spread_cost)
 
-    import builtins
     original_print = builtins.print
     builtins.print = lambda *args, **kwargs: None
 
@@ -100,7 +100,6 @@ def main(uld_file, package_file, output_dir):
         total_cost,
     ) = packer.pack()
 
-    import builtins as b2
     builtins.print = original_print
 
     # Validate the packing
