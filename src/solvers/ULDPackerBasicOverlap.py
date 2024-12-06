@@ -9,6 +9,10 @@ SIZE_BOUND = 5000
 
 # Define the ULDPacker class
 class ULDPackerBasicOverlap(ULDPackerBase):
+    """
+    A class for packing packages into ULDs using a basic strategy of checking
+    overlapping spaces.
+    """
     def __init__(
         self,
         ulds: List[ULD],
@@ -16,6 +20,14 @@ class ULDPackerBasicOverlap(ULDPackerBase):
         priority_spread_cost: int,
         max_passes: int = 1,
     ):
+        """
+        Initializes the ULDPackerMixed instance.
+
+        :param ulds: List of ULDs available for packing.
+        :param packages: List of packages to be packed.
+        :param priority_spread_cost: Cost associated with spreading priority packages.
+        :param max_passes: Maximum number of packing passes (default is 1).
+        """
         super().__init__(
             ulds,
             packages,
@@ -26,6 +38,15 @@ class ULDPackerBasicOverlap(ULDPackerBase):
     def _find_available_space(
         self, uld: ULD, package: Package, orientation: Tuple[int], policy: str
     ) -> Tuple[bool, np.ndarray]:
+        """
+        Finds available space in the specified ULD for the given package.
+
+        :param uld: The ULD in which to find space.
+        :param package: The package to be packed.
+        :param orientation: The orientation of the package.
+        :param policy: The policy for finding available space (first_find, min_volume, ...)
+        :return: A tuple indicating whether space was found and the coordinates of the space.
+        """
         length, width, height = orientation
         best_position = None
         best_idx = None

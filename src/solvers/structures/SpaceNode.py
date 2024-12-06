@@ -56,17 +56,6 @@ class SpaceNode:
         self.overlaps = new_overlap_list
         print(f"{self.node_id} removed links to {other.node_id}")
 
-    # Unused function
-    # def is_shrinkable_after_placing(self, box_overlap):
-    #     if (
-    #         (box_overlap.length * box_overlap.width == self.length * self.width)
-    #         or (box_overlap.height * box_overlap.width == self.height * self.width)
-    #         or (box_overlap.height * box_overlap.length == self.height * self.length)
-    #     ):
-    #         return True
-    #
-    #     return False
-
     def divide_into_subspaces(self, box_overlap):
         if not box_overlap.is_completely_inside(self):
             raise Exception("Overlap box is not inside space to divide")
