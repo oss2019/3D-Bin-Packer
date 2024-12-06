@@ -3,7 +3,13 @@ import numpy as np
 
 
 class SpaceNode:
-    def __init__(self, start_corner: np.ndarray, dimensions: np.ndarray, minimum_dimension: int, parent=None):
+    def __init__(
+        self,
+        start_corner: np.ndarray,
+        dimensions: np.ndarray,
+        minimum_dimension: int,
+        parent=None,
+    ):
         self.node_id = None
         self.parent = parent
         self.length = dimensions[0]
@@ -77,30 +83,39 @@ class SpaceNode:
         space1 = SpaceNode(
             start_corner=np.array([ax, oy + ow, az]),
             dimensions=np.array([al, aw - (oy + ow - ay), ah]),
-            minimum_dimension=self.minimum_dimension
+            minimum_dimension=self.minimum_dimension,
         )  # Left full
         space2 = SpaceNode(
-            start_corner=np.array([ax, ay, az]), dimensions=np.array([al, oy - ay, ah]),minimum_dimension=self.minimum_dimension
+            start_corner=np.array([ax, ay, az]),
+            dimensions=np.array([al, oy - ay, ah]),
+            minimum_dimension=self.minimum_dimension,
         )  # Right full
         space3 = SpaceNode(
-            start_corner=np.array([ax, ay, az]), dimensions=np.array([ox - ax, aw, ah]),minimum_dimension=self.minimum_dimension
+            start_corner=np.array([ax, ay, az]),
+            dimensions=np.array([ox - ax, aw, ah]),
+            minimum_dimension=self.minimum_dimension,
         )  # Back full
         # Front full
         space4 = SpaceNode(
             start_corner=np.array([ox + ol, ay, az]),
             dimensions=np.array([al - (ox + ol - ax), aw, ah]),
-            minimum_dimension=self.minimum_dimension
+            minimum_dimension=self.minimum_dimension,
         )  # Front full
         space5 = SpaceNode(
-            start_corner=np.array([ax, ay, az]), dimensions=np.array([al, aw, oz - az]), minimum_dimension=self.minimum_dimension
+            start_corner=np.array([ax, ay, az]),
+            dimensions=np.array([al, aw, oz - az]),
+            minimum_dimension=self.minimum_dimension,
         )  # Above full
         # Down full
         space6 = SpaceNode(
             start_corner=np.array([ax, ay, oz + oh]),
-            dimensions=np.array([al, aw, ah - (oz + oh - az)]),minimum_dimension=self.minimum_dimension
+            dimensions=np.array([al, aw, ah - (oz + oh - az)]),
+            minimum_dimension=self.minimum_dimension,
         )  # Down full
 
-        if oy + ow < ay + aw and all(v >= self.minimum_dimension for v in space1.dimensions):
+        if oy + ow < ay + aw and all(
+            v >= self.minimum_dimension for v in space1.dimensions
+        ):
             updated_spaces.append(space1)
             # print(f"Appending {space1}")
 
@@ -112,7 +127,9 @@ class SpaceNode:
             updated_spaces.append(space3)
             # print(f"Appending {space3}")
 
-        if ox + ol < ax + al and all(v >= self.minimum_dimension for v in space4.dimensions):
+        if ox + ol < ax + al and all(
+            v >= self.minimum_dimension for v in space4.dimensions
+        ):
             updated_spaces.append(space4)
             # print(f"Appending {space4}")
 
@@ -120,7 +137,9 @@ class SpaceNode:
             updated_spaces.append(space5)
             # print(f"Appending {space5}")
 
-        if oz + oh < az + ah and all(v >= self.minimum_dimension for v in space6.dimensions):
+        if oz + oh < az + ah and all(
+            v >= self.minimum_dimension for v in space6.dimensions
+        ):
             updated_spaces.append(space6)
             # print(f"Appending {space6}")
 

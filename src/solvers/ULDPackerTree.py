@@ -5,11 +5,6 @@ import numpy as np
 from .ULDPackerBase import ULDPackerBase
 from .structures.SpaceTree import SpaceTree
 
-import builtins
-
-# This is to disable prints
-builtins.print = lambda *args, **kwargs: None
-
 
 class ULDPackerTree(ULDPackerBase):
     def __init__(
@@ -19,6 +14,14 @@ class ULDPackerTree(ULDPackerBase):
         priority_spread_cost: int,
         max_passes: int = 1,
     ):
+        """
+        Initialize the ULDPackerTree.
+
+        :param ulds: List of ULDs.
+        :param packages: List of packages to be packed.
+        :param priority_spread_cost: Cost associated with priority spread.
+        :param max_passes: Maximum number of packing passes.
+        """
         super().__init__(
             ulds,
             packages,
@@ -26,10 +29,15 @@ class ULDPackerTree(ULDPackerBase):
             max_passes,
         )
         self.unpacked_packages = []
-
         self.space_trees = [(SpaceTree(u, 40), u.id) for u in ulds]
 
     def insert(self, package: Package):
+        """
+        Insert a package into the appropriate space tree.
+
+        :param package: Package to be inserted.
+        :return: Tuple indicating success, position, and ULD ID.
+        """
         for st, uid in self.space_trees:
             space = st.search(package, search_policy="bfs")
             if space is not None:
@@ -39,15 +47,26 @@ class ULDPackerTree(ULDPackerBase):
                 )
                 print(f"\n{space.node_id} is for {package.id}\n")
                 print(f"Tree {uid}")
+
+                # # Use for debugging
                 # st.display_tree()
-                print("-" * 50)
+                # print("-" * 50)
                 # input()
+
                 return True, space.start_corner, uid
         return False, None, None
 
     def _find_available_space(
         self, uld: ULD, package: Package, policy: str
     ) -> Tuple[bool, np.ndarray]:
+        """
+        Find available space for a package in a ULD.
+
+        :param uld: ULD to search in.
+        :param package: Package to find space for.
+        :param policy: Search policy to use.
+        :return: Tuple indicating success and position.
+        """
         pass
 
     def _update_available_spaces(
@@ -58,27 +77,36 @@ class ULDPackerTree(ULDPackerBase):
         package: Package,
         space_index: int,
     ):
+        """
+        Update available spaces after placing a package.
+
+        :param uld: ULD being updated.
+        :param position: Position of the package.
+        :param orientation: Orientation of the package.
+        :param package: Package being placed.
+        :param space_index: Index of the space being updated.
+        """
         pass
 
     def pack(self):
-        # WARNING remove this n_packs variable its for logging
-        n_packs = 0
+        """
+        Pack the packages into the ULDs.
 
+        :return: Tuple containing packed positions, packed packages, unpacked packages, priority ULDs, and total cost.
+        """
+        n_packs = 1
+
+        # Get priority packages (sort if required)
         priority_packages = [pkg for pkg in self.packages if pkg.is_priority]
-        # priority_packages = sorted(
-        #     [pkg for pkg in self.packages if pkg.is_priority],
-        #     key=lambda p: np.prod(p.dimensions),
-        #     reverse=True,
-        # )
 
-        # WARNING Normalization not done for sorting eco_pkg
+        # Get economy packages (sort if required)
         economy_packages = sorted(
             [pkg for pkg in self.packages if not pkg.is_priority],
             key=lambda p: p.delay_cost / np.prod(p.dimensions),
             reverse=True,
         )
 
-        # First pass - initial packing
+        # Pack the priority packages first
         for package in priority_packages:
             packed, position, uldid = self.insert(package)
             if not packed:
@@ -98,12 +126,8 @@ class ULDPackerTree(ULDPackerBase):
                         package.rotation[2],
                     )
                 )
-                # if self.validate_packing():
-                #     input()
-                # else:
-                #     raise ("Invalid")
-                n_packs += 1
 
+        # Pack the economy packages next
         for package in economy_packages:
             packed, position, uldid = self.insert(package)
             if not packed:
@@ -123,8 +147,8 @@ class ULDPackerTree(ULDPackerBase):
                         package.rotation[2],
                     )
                 )
-                n_packs += 1
 
+        # Calculate some statistics to print
         total_delay_cost = sum(pkg.delay_cost for pkg in self.unpacked_packages)
         priority_spread_cost = sum(
             self.priority_spread_cost for is_prio_uld in self.prio_ulds if is_prio_uld
@@ -140,65 +164,12 @@ class ULDPackerTree(ULDPackerBase):
         )
 
     def get_list_of_spaces(self, uld_id):
+        """
+        Retrieve a list of available spaces in a specific ULD.
+
+        :param uld_id: ID of the ULD to retrieve spaces from.
+        :return: List of available spaces.
+        """
         for st, uid in self.space_trees:
             if uid == uld_id:
                 return st.create_list_of_spaces()
-
-
-def run_bulk_insert_test_cases():
-    # Initialize ULDs
-    ulds = [
-        ULD(id="ULD1", length=10, width=10, height=10, weight_limit=500),
-        ULD(id="ULD2", length=10, width=10, height=10, weight_limit=300),
-        ULD(id="ULD3", length=10, width=10, height=10, weight_limit=200),
-    ]
-
-    # Bulk test cases
-    test_cases = [
-        # Test case 6: Mixed batch for maximum utilization
-        {
-            "name": "Mixed batch for maximum utilization",
-            "packages": [
-                Package(
-                    id=f"P{i}",
-                    length=(i % 6) + 2,
-                    width=(i % 5) + 2,
-                    height=(i % 4) + 2,
-                    weight=10,
-                    is_priority=(i % 3 == 0),
-                    delay_cost=6,
-                )
-                for i in range(1, 50)  # 50 packages of varying sizes
-            ],
-            "expected_unpacked": [],  # Should distribute effectively across ULDs
-        },
-    ]
-
-    for i, test in enumerate(test_cases, 1):
-        print(f"Running Test Case {i}: {test['name']}")
-        packer = ULDPackerTree(
-            ulds=ulds,
-            packages=[],
-            priority_spread_cost=5,
-        )
-
-        # Sequentially insert packages
-        for package in test["packages"]:
-            packer.insert(package)
-            # for st in packer.space_trees:
-            #     st.display_tree()
-            print("-" * 40)
-
-        # Check for unpacked packages
-        unpacked_ids = [pkg.id for pkg in packer.unpacked_packages]
-        passed = unpacked_ids == test["expected_unpacked"]
-        print(f"Test Passed: {passed}")
-        if not passed:
-            print(
-                f"Expected unpacked: {test['expected_unpacked']}, Got: {unpacked_ids}"
-            )
-        print("-" * 40)
-
-
-# # Run the bulk test cases
-# run_bulk_insert_test_cases()

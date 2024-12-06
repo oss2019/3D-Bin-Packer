@@ -3,10 +3,6 @@ from dataclass.ULD import ULD
 from dataclass.Package import Package
 import numpy as np
 from .ULDPackerBase import ULDPackerBase
-import builtins
-
-# This is to disable prints
-builtins.print = lambda *args, **kwargs: None
 
 SIZE_BOUND = 5000
 
@@ -121,7 +117,7 @@ class ULDPackerBasicOverlap(ULDPackerBase):
         length, width, height = orientation
         x, y, z = position
 
-        # Overlap cut
+        # New spaces after the space is cut
         updated_spaces = []
         for space in self.available_spaces[uld.id]:
             ax, ay, az, al, aw, ah = space
@@ -174,8 +170,6 @@ class ULDPackerBasicOverlap(ULDPackerBase):
         self.available_spaces[uld.id] = updated_spaces
 
     def pack(self):
-        # WARNING remove this n_packs vairable its for logging
-
         n_packs = 0
 
         priority_packages = sorted(
@@ -184,16 +178,12 @@ class ULDPackerBasicOverlap(ULDPackerBase):
             reverse=True,
         )
 
-        # WARNING Normalization not done for sorting eco_pkg
         economy_packages = sorted(
             [pkg for pkg in self.packages if not pkg.is_priority],
-            # key=lambda p: p.delay_cost
-            # / (np.prod(p.dimensions / 100) / 1.4 + (p.weight / 270)),
             key=lambda p: (p.delay_cost / np.prod(p.dimensions)),
             reverse=True,
         )
 
-        # First pass - initial packing
         for package in priority_packages:
             packed = False
             for uld in sorted(
@@ -209,7 +199,6 @@ class ULDPackerBasicOverlap(ULDPackerBase):
                 )
                 if can_fit:
                     packed = True
-                    # WARNING remove this print later
                     n_packs += 1
                     print(f"Packed Priority {package.id} in {uld.id}, {n_packs}")
                     break
@@ -225,9 +214,6 @@ class ULDPackerBasicOverlap(ULDPackerBase):
                 key=lambda u: (1 - u.current_weight / u.weight_limit),
                 reverse=False,
             ):
-                # print(
-                #     self._try_pack_package(package, uld, space_find_policy="first_find")
-                # )
                 can_fit, orientation = self._try_pack_package(
                     package,
                     uld,
@@ -236,7 +222,6 @@ class ULDPackerBasicOverlap(ULDPackerBase):
                 )
                 if can_fit:
                     packed = True
-                    # WARNING remove this print later
                     n_packs += 1
                     print(f"Packed Economy {package.id} in {uld.id}, {n_packs}")
                     break
@@ -244,20 +229,6 @@ class ULDPackerBasicOverlap(ULDPackerBase):
                 self.unpacked_packages.append(package)
             else:
                 self.packed_packages.append(package)
-
-        # Multi-pass strategy to optimize packing
-        # for pass_num in range(self.max_passes - 1):  # Exclude first pass
-        #     # Try to repack packages into available spaces
-        #     for package in self.unpacked_packages:
-        #         packed = False
-        #         for uld in self.ulds:
-        #             if self._try_pack_package(
-        #                 package, uld, space_find_policy="first_find"
-        #             ):
-        #                 packed = True
-        #                 break
-        #         if packed:
-        #             self.unpacked_packages.remove(package)
 
         total_delay_cost = sum(pkg.delay_cost for pkg in self.unpacked_packages)
         priority_spread_cost = sum(

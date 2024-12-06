@@ -2,7 +2,6 @@ from typing import List, Tuple
 from dataclass.ULD import ULD
 from dataclass.Package import Package
 import numpy as np
-
 import itertools
 
 SIZE_BOUND = 5000
@@ -17,6 +16,14 @@ class ULDPackerBase:
         priority_spread_cost: int,
         max_passes: int = 1,
     ):
+        """
+        Initializes the ULDPackerBase instance.
+
+        :param ulds: A list of ULDs (Unit Load Devices) available for packing.
+        :param packages: A list of packages to be packed into the ULDs.
+        :param priority_spread_cost: The cost associated with spreading priority packages.
+        :param max_passes: The maximum number of packing passes. Defaults to 1.
+        """
         self.ulds = ulds
         self.prio_ulds = {}
         self.packages = packages
@@ -34,6 +41,14 @@ class ULDPackerBase:
     def _find_available_space(
         self, uld: ULD, package: Package, policy: str
     ) -> Tuple[bool, np.ndarray]:
+        """
+        Finds an available space in the given ULD for the specified package.
+
+        :param uld: The ULD in which to find space.
+        :param package: The package to be packed.
+        :param policy: The packing policy to be used
+        :return: Whether Space was found, and the coordinates of the space.
+        """
         raise NotImplementedError("This method needs to be implemented.")
 
     def _update_available_spaces(
@@ -44,12 +59,31 @@ class ULDPackerBase:
         package: Package,
         space_index: int,
     ):
+        """
+        Updates the available spaces in the ULD after packing a package.
+
+        :param uld: The ULD being updated.
+        :param position: The position where the package was packed.
+        :param orientation: The orientation of the package.
+        :param package: The package that was packed.
+        :param space_index: The index of the space that was used in list of spaces.
+        """
         raise NotImplementedError("This method needs to be implemented.")
 
     def pack(self):
+        """
+        Needs to be overridden. Packs according to the Derived class policies
+
+        :return: None
+        """
         raise NotImplementedError("This method needs to be implemented.")
 
     def get_list_of_spaces(self, uld_id):
+        """
+        Wrapper for getting list of empty spaces in a ULD
+
+        :return: None
+        """
         pass
 
     def _try_pack_package(
@@ -58,7 +92,16 @@ class ULDPackerBase:
         uld: ULD,
         space_find_policy: str,
         orientation_choose_policy: str,
-    ) -> bool:
+    ):
+        """
+        Attempts to pack a given package into the specified ULD using the provided policies.
+
+        :param package: The package to be packed.
+        :param uld: The ULD in which to attempt packing the package.
+        :param space_find_policy: Policy to determine how to find available space (first_find, etc...).
+        :param orientation_choose_policy: The policy to determine which orientation is chosen in the space.
+        :return: True, orientation, if the package was successfully packed, False, None, tuple otherwise.
+        """
         if package.weight + uld.current_weight > uld.weight_limit:
             return False, (None, None, None)  # Exceeds weight limit
 
@@ -77,7 +120,7 @@ class ULDPackerBase:
                 if package.is_priority:
                     self.prio_ulds[uld.id] = True
 
-                x, y, z = position 
+                x, y, z = position
                 self.packed_positions.append(
                     (
                         package.id,
@@ -95,7 +138,7 @@ class ULDPackerBase:
                 )
                 package.rotation = orientation
                 return True, orientation
-            
+
             return False, (None, None, None)
 
         if orientation_choose_policy == "first_find":
@@ -112,7 +155,7 @@ class ULDPackerBase:
                     if package.is_priority:
                         self.prio_ulds[uld.id] = True
 
-                    x, y, z = position 
+                    x, y, z = position
                     self.packed_positions.append(
                         (
                             package.id,
@@ -130,11 +173,12 @@ class ULDPackerBase:
                     )
                     package.rotation = orientation
                     return True, orientation
-            
+
             return False, (None, None, None)
 
-        # Find the element in list_of_fits with the minimum np.prod
         elif orientation_choose_policy == "min_volume":
+            # Create list of possible orientations and fits based on space_find_policy
+            # Choose one with minimum volume
             package_rotations = list(itertools.permutations(package.dimensions))
             list_of_fits = []
             minvol = None
@@ -192,12 +236,19 @@ class ULDPackerBase:
                 package.rotation = best_orientation
                 return True, best_orientation
             return False, (None, None, None)
-        
+
         else:
-            raise RuntimeError(f"Invaldid orientation choose policy  {orientation_choose_policy}")
+            raise RuntimeError(
+                f"Invalid orientation choose policy  {orientation_choose_policy}"
+            )
 
     def validate_packing(self) -> Tuple[bool, List[str]]:
-        """Validate the packing process"""
+        """
+        Validates the packing performed
+        Checks for package overlaps and package out of boundaries
+
+        :return: Whether packing is valid. If not, also return list of errors
+        """
         validation_errors = []
 
         # Check each ULD for validity
@@ -269,6 +320,11 @@ class ULDPackerBase:
         return is_valid, validation_errors
 
     def count_priority_packages_in_uld(self):
+        """
+        Counts priority packages in each ULD.
+
+        :return: A dictionary with ULD IDs as keys and counts of priority packages as values.
+        """
         priority_count_per_uld = {}
         for package_id, uld_id, _, _, _, _, _, _ in self.packed_positions:
             package = next(pkg for pkg in self.packages if pkg.id == package_id)
@@ -278,17 +334,16 @@ class ULDPackerBase:
                 priority_count_per_uld[uld_id] += 1
         return priority_count_per_uld
 
-
-# Multi-pass strategy to optimize packing
-# for pass_num in range(self.max_passes - 1):  # Exclude first pass
-#     # Try to repack packages into available spaces
-#     for package in self.unpacked_packages:
-#         packed = False
-#         for uld in self.ulds:
-#             if self._try_pack_package(
-#                 package, uldspace_find_policy="first_find"
-#             ):
-#                 packed = True
-#                 break
-#         if packed:
-#             self.unpacked_packages.remove(package)
+        # Multi-pass strategy to optimize packing
+        # for pass_num in range(self.max_passes - 1):  # Exclude first pass
+        #     # Try to repack packages into available spaces
+        #     for package in self.unpacked_packages:
+        #         packed = False
+        #         for uld in self.ulds:
+        #             if self._try_pack_package(
+        #                 package, uld, space_find_policy="first_find"
+        #             ):
+        #                 packed = True
+        #                 break
+        #         if packed:
+        #             self.unpacked_packages.remove(package)

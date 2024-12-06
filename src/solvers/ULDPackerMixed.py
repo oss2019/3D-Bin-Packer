@@ -7,8 +7,14 @@ from .ULDPackerBase import ULDPackerBase
 SIZE_BOUND = 5000
 
 
-# Define the ULDPacker class
 class ULDPackerMixed(ULDPackerBase):
+    """
+    A class for packing packages into ULDs using a mixed packing strategy.
+
+    This class extends the ULDPackerBase and implements specific packing
+    strategies that consider priority packages and available space in ULDs.
+    """
+
     def __init__(
         self,
         ulds: List[ULD],
@@ -16,6 +22,14 @@ class ULDPackerMixed(ULDPackerBase):
         priority_spread_cost: int,
         max_passes: int = 1,
     ):
+        """
+        Initializes the ULDPackerMixed instance.
+
+        :param ulds: List of ULDs available for packing.
+        :param packages: List of packages to be packed.
+        :param priority_spread_cost: Cost associated with spreading priority packages.
+        :param max_passes: Maximum number of packing passes (default is 1).
+        """
         super().__init__(
             ulds,
             packages,
@@ -26,6 +40,15 @@ class ULDPackerMixed(ULDPackerBase):
     def _find_available_space(
         self, uld: ULD, package: Package, orientation: Tuple[int], policy: str
     ) -> Tuple[bool, np.ndarray]:
+        """
+        Finds available space in the specified ULD for the given package.
+
+        :param uld: The ULD in which to find space.
+        :param package: The package to be packed.
+        :param orientation: The orientation of the package.
+        :param policy: The policy for finding available space (first_find, min_volume, ...)
+        :return: A tuple indicating whether space was found and the coordinates of the space.
+        """
         length, width, height = orientation
         best_position = None
         best_idx = None
@@ -48,12 +71,13 @@ class ULDPackerMixed(ULDPackerBase):
             x, y, z, al, aw, ah = area
             if length <= al and width <= aw and height <= ah:
                 if policy == "first_find":
+                    # Track and return the first space that can fit the package
                     best_position = np.array([x, y, z])
                     best_idx = idx
                     break
 
                 elif policy == "origin_bias":
-                    # Check for the best position based on best_x, best_y, and best_z
+                    # Track the space closest to (0,0,0)
                     if (
                         (x < best_x)
                         or (x == best_x and y < best_y)
@@ -65,8 +89,8 @@ class ULDPackerMixed(ULDPackerBase):
                         best_position = np.array([x, y, z])
                         best_idx = idx
 
-                elif policy == "min_length_sum":
-                    # Check for the best position based on sum of best_x, best_y, and best_z
+                elif policy == "min_sim":
+                    # Track the space with minimum sum of coordinates
                     if best_x + best_y + best_z > x + y + z:
                         best_x = x
                         best_y = y
@@ -75,33 +99,34 @@ class ULDPackerMixed(ULDPackerBase):
                         best_idx = idx
 
                 elif policy == "min_surface_area":
-                    # Check for the best position based on surface area
+                    # Track the space with minimum surface area
                     if best_surface_area > al * aw + aw + ah + ah * al:
                         best_surface_area = al * aw + aw + ah + ah * al
                         best_position = np.array([x, y, z])
                         best_idx = idx
 
                 elif policy == "max_surface_area":
-                    # Check for the best position based on surface area
+                    # Track the space with maximum surface area
                     if best_surface_area < al * aw + aw + ah + ah * al:
                         best_surface_area = al * aw + aw + ah + ah * al
                         best_position = np.array([x, y, z])
                         best_idx = idx
 
                 elif policy == "min_volume":
-                    # Check for the best position based on surface area
+                    # Track the space with minimum volume
                     if best_volume > al * aw * ah:
                         best_volume = al * aw * ah
                         best_position = np.array([x, y, z])
                         best_idx = idx
 
                 elif policy == "max_volume":
-                    # Check for the best position based on surface area
+                    # Track the space with maximum volume
                     if best_volume < al * aw * ah:
                         best_volume = al * aw * ah
                         best_position = np.array([x, y, z])
                         best_idx = idx
 
+        # Return the best space according to policy
         if best_position is not None:
             return True, best_position, best_idx
         return False, None, -1
@@ -114,6 +139,15 @@ class ULDPackerMixed(ULDPackerBase):
         package: Package,
         space_index: int,
     ):
+        """
+        Updates the available spaces in the ULD after packing a package.
+
+        :param uld: The ULD being updated.
+        :param position: The position where the package was packed.
+        :param orientation: The orientation of the package.
+        :param package: The package that was packed.
+        :param space_index: The index of the space that was used (in the list)
+        """
         length, width, height = orientation
         x, y, z = position
 
@@ -170,24 +204,20 @@ class ULDPackerMixed(ULDPackerBase):
         self.available_spaces[uld.id] = updated_spaces
 
     def pack(self):
-        # WARNING remove this n_packs vairable its for logging
-
         n_packs = 0
 
         priority_packages = sorted(
             [pkg for pkg in self.packages if pkg.is_priority],
-            key=lambda p: (np.prod(p.dimensions)), 
+            key=lambda p: (np.prod(p.dimensions)),
             reverse=True,
         )
 
-        # WARNING Normalization not done for sorting eco_pkg
         economy_packages = sorted(
             [pkg for pkg in self.packages if not pkg.is_priority],
             key=lambda p: (p.delay_cost / np.prod(p.dimensions)),
             reverse=True,
         )
 
-        # First pass - initial packing
         for package in priority_packages:
             packed = False
             for uld in sorted(
@@ -196,14 +226,17 @@ class ULDPackerMixed(ULDPackerBase):
                 reverse=True,
             ):
                 can_fit, orientation = self._try_pack_package(
-                    package, uld, space_find_policy="first_find", 
-                    orientation_choose_policy="no_rot"
+                    package,
+                    uld,
+                    space_find_policy="first_find",
+                    orientation_choose_policy="no_rot",
                 )
                 if can_fit:
                     packed = True
-                    # WARNING remove this print later
                     n_packs += 1
-                    print(f"Packed Priority {package.id} in {uld.id}, with orientation {tuple(orientation)}, {n_packs} ")
+                    print(
+                        f"Packed Priority {package.id} in {uld.id}, with orientation {tuple(orientation)}, {n_packs} "
+                    )
                     break
             if not packed:
                 self.unpacked_packages.append(package)
@@ -218,14 +251,18 @@ class ULDPackerMixed(ULDPackerBase):
                 reverse=False,
             ):
                 can_fit, orientation = self._try_pack_package(
-                    package, uld, space_find_policy="first_find",
-                    orientation_choose_policy="first_find"
+                    package,
+                    uld,
+                    space_find_policy="first_find",
+                    orientation_choose_policy="first_find",
                 )
                 if can_fit:
                     packed = True
                     # WARNING remove this print later
                     n_packs += 1
-                    print(f"Packed Economy {package.id} in {uld.id}, with orientation {tuple(orientation)}, {n_packs} ")
+                    print(
+                        f"Packed Economy {package.id} in {uld.id}, with orientation {tuple(orientation)}, {n_packs} "
+                    )
                     break
             if not packed:
                 self.unpacked_packages.append(package)

@@ -5,17 +5,7 @@ import numpy as np
 from itertools import permutations
 
 
-import builtins
-
-# This is to disable prints
-builtins.print = lambda *args, **kwargs: None
-# This is to enable prints
-# builtins.print = print
-
-
 global_node_id = 1
-
-nodes_to_delete = []
 
 
 class SpaceTree:
@@ -122,7 +112,9 @@ class SpaceTree:
         print(f" --- Dividing {node_to_divide.node_id} ---")
 
         package_start_corner = node_to_divide.start_corner
-        packed_space = SpaceNode(package_start_corner, package.rotation, self.minimum_dimension)
+        packed_space = SpaceNode(
+            package_start_corner, package.rotation, self.minimum_dimension
+        )
 
         if packed_space.is_completely_inside(node_to_divide):
             # Get possible children

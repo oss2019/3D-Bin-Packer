@@ -8,6 +8,7 @@ usage() {
     echo "  - BasicOverlap"
     echo "  - BasicNonOverlap (not working for Priority 100% packing)"
     echo "  - Tree"
+    echo "  - Mixed"
     exit 1
 }
 

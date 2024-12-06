@@ -3,7 +3,6 @@
 import pandas as pd
 from typing import List, Tuple
 import sys
-import builtins
 
 from dataclass.Package import Package
 from dataclass.ULD import ULD
@@ -64,7 +63,6 @@ def format_output(
         if pkg.is_priority:
             invalid_soln = True
 
-    # output += f"\nTotal Delay Cost: {total_cost}\n"
     if invalid_soln:
         output += (
             "\n"
@@ -77,9 +75,7 @@ def format_output(
 
 # Main function
 def main(uld_file, package_file, output_dir):
-    # uld_file = "input/ulds2.csv"
-    # package_file = "input/packages2.csv"
-
+    # Read the ULD and Package files
     ulds, packages = read_data_from_csv(uld_file, package_file)
 
     # Define priority spread cost
@@ -87,6 +83,8 @@ def main(uld_file, package_file, output_dir):
 
     # Initialize the ULDPacker with multiple passes
     packer = ULDPacker(ulds, packages, priority_spread_cost)
+
+    import builtins
 
     original_print = builtins.print
     builtins.print = lambda *args, **kwargs: None
@@ -112,9 +110,9 @@ def main(uld_file, package_file, output_dir):
         print("Packing validated successfully! No overlaps")
 
     # Generate 3D plots for ULDs
-    # generate_3d_plot(packer, output_dir)
-    visualize_3d_packing(packer)
-    # visualize_individual_spaces(packer)
+    generate_3d_plot(packer, output_dir)  # Matplotlib
+    visualize_3d_packing(packer)  # Pyvista
+    # visualize_individual_spaces(packer) """Do not use this with large datasets as there are lot of spaces"""
 
     # Format and print output
     output = format_output(packed_positions, unpacked_packages, total_cost)
@@ -150,17 +148,8 @@ def main(uld_file, package_file, output_dir):
     wasted_weights = []
 
     for uld in ulds:
-        w1 = (
-            (1 - uld.current_vol_occupied / np.prod(uld.dimensions))
-            if uld.current_vol_occupied != 0
-            else 0
-        )
-
-        w2 = (
-            (1 - uld.current_weight / uld.weight_limit)
-            if uld.current_vol_occupied != 0
-            else 0
-        )
+        w1 = 1 - uld.current_vol_occupied / np.prod(uld.dimensions)
+        w2 = 1 - uld.current_weight / uld.weight_limit
 
         wasted_spaces.append(int(w1 * 100))
         wasted_weights.append(int(w2 * 100))
