@@ -87,6 +87,10 @@ def main(uld_file, package_file, output_dir):
     # Initialize the ULDPacker with multiple passes
     packer = ULDPacker(ulds, packages, priority_spread_cost)
 
+    import builtins
+    original_print = builtins.print
+    builtins.print = lambda *args, **kwargs: None
+
     # Start packing
     (
         packed_positions,
@@ -95,6 +99,9 @@ def main(uld_file, package_file, output_dir):
         ulds_with_prio,
         total_cost,
     ) = packer.pack()
+
+    import builtins as b2
+    builtins.print = original_print
 
     # Validate the packing
     is_valid, validation_errors = packer.validate_packing()

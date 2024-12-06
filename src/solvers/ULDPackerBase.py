@@ -60,30 +60,95 @@ class ULDPackerBase:
         orientation_choose_policy: str,
     ) -> bool:
         if package.weight + uld.current_weight > uld.weight_limit:
-            return False  # Exceeds weight limit
+            return False, (None, None, None)  # Exceeds weight limit
 
         # Define the package dimensions
-        package_rotations = list(itertools.permutations(package.dimensions))
-        # package_rotations = [package.dimensions]
 
-        list_of_fits = []
-        for orientation in package_rotations:
+        if orientation_choose_policy == "no_rot":
+            orientation = package.dimensions
+
             can_fit, position, space_index = self._find_available_space(
                 uld, package, orientation, policy=space_find_policy
             )
 
             if can_fit:
-                if orientation_choose_policy == "first_find":
-                    return True, orientation
+                uld.current_weight += package.weight
+                uld.current_vol_occupied += np.prod(package.dimensions)
+                if package.is_priority:
+                    self.prio_ulds[uld.id] = True
 
-                list_of_fits.append((position, orientation, space_index))
+                x, y, z = position 
+                self.packed_positions.append(
+                    (
+                        package.id,
+                        uld.id,
+                        x,
+                        y,
+                        z,
+                        orientation[0],
+                        orientation[1],
+                        orientation[2],
+                    )
+                )
+                self._update_available_spaces(
+                    uld, position, orientation, package, space_index
+                )
+                package.rotation = orientation
+                return True, orientation
+            
+            return False, (None, None, None)
+
+        if orientation_choose_policy == "first_find":
+            package_rotations = list(itertools.permutations(package.dimensions))
+
+            for orientation in package_rotations:
+                can_fit, position, space_index = self._find_available_space(
+                    uld, package, orientation, policy=space_find_policy
+                )
+
+                if can_fit:
+                    uld.current_weight += package.weight
+                    uld.current_vol_occupied += np.prod(package.dimensions)
+                    if package.is_priority:
+                        self.prio_ulds[uld.id] = True
+
+                    x, y, z = position 
+                    self.packed_positions.append(
+                        (
+                            package.id,
+                            uld.id,
+                            x,
+                            y,
+                            z,
+                            orientation[0],
+                            orientation[1],
+                            orientation[2],
+                        )
+                    )
+                    self._update_available_spaces(
+                        uld, position, orientation, package, space_index
+                    )
+                    package.rotation = orientation
+                    return True, orientation
+            
+            return False, (None, None, None)
 
         # Find the element in list_of_fits with the minimum np.prod
-        if orientation_choose_policy == "min_volume":
+        elif orientation_choose_policy == "min_volume":
+            package_rotations = list(itertools.permutations(package.dimensions))
+            list_of_fits = []
             minvol = None
             best_space_index = None
             best_orientation = None
             best_position = None
+
+            for orientation in package_rotations:
+                can_fit, position, space_index = self._find_available_space(
+                    uld, package, orientation, policy=space_find_policy
+                )
+
+                if can_fit:
+                    list_of_fits.append((position, orientation, space_index))
 
             avail_s = self.available_spaces[uld.id]
 
@@ -124,8 +189,12 @@ class ULDPackerBase:
                 self._update_available_spaces(
                     uld, best_position, best_orientation, package, best_space_index
                 )
+                package.rotation = best_orientation
                 return True, best_orientation
             return False, (None, None, None)
+        
+        else:
+            raise RuntimeError(f"Invaldid orientation choose policy  {orientation_choose_policy}")
 
     def validate_packing(self) -> Tuple[bool, List[str]]:
         """Validate the packing process"""

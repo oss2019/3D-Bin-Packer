@@ -196,13 +196,14 @@ class ULDPackerMixed(ULDPackerBase):
                 reverse=True,
             ):
                 can_fit, orientation = self._try_pack_package(
-                    package, uld, space_find_policy="first_find"
+                    package, uld, space_find_policy="first_find", 
+                    orientation_choose_policy="no_rot"
                 )
                 if can_fit:
                     packed = True
                     # WARNING remove this print later
                     n_packs += 1
-                    print(f"Packed Priority {package.id} in {uld.id}, {n_packs}")
+                    print(f"Packed Priority {package.id} in {uld.id}, with orientation {tuple(orientation)}, {n_packs} ")
                     break
             if not packed:
                 self.unpacked_packages.append(package)
@@ -217,13 +218,14 @@ class ULDPackerMixed(ULDPackerBase):
                 reverse=False,
             ):
                 can_fit, orientation = self._try_pack_package(
-                    package, uld, space_find_policy="first_find"
+                    package, uld, space_find_policy="first_find",
+                    orientation_choose_policy="first_find"
                 )
                 if can_fit:
                     packed = True
                     # WARNING remove this print later
                     n_packs += 1
-                    print(f"Packed Economy {package.id} in {uld.id}, {n_packs}")
+                    print(f"Packed Economy {package.id} in {uld.id}, with orientation {tuple(orientation)}, {n_packs} ")
                     break
             if not packed:
                 self.unpacked_packages.append(package)
