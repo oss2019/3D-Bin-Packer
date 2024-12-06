@@ -29,7 +29,7 @@ class ULDPackerTree(ULDPackerBase):
             max_passes,
         )
         self.unpacked_packages = []
-        self.space_trees = [(SpaceTree(u, 40), u.id) for u in ulds]
+        self.space_trees = [(SpaceTree(u, 40), u.id, u) for u in ulds]
 
     def insert(self, package: Package):
         """
@@ -38,7 +38,10 @@ class ULDPackerTree(ULDPackerBase):
         :param package: Package to be inserted.
         :return: Tuple indicating success, position, and ULD ID.
         """
-        for st, uid in self.space_trees:
+
+        self.space_trees.sort(key = lambda s: (self.prio_ulds[s[2].id],
+                                               -np.prod(s[2].dimensions)))
+        for st, uid, u in self.space_trees:
             space = st.search(package, search_policy="bfs")
             if space is not None:
                 st.place_package_in(
@@ -52,6 +55,11 @@ class ULDPackerTree(ULDPackerBase):
                 # st.display_tree()
                 # print("-" * 50)
                 # input()
+
+                if package.is_priority:
+                    self.prio_ulds[uid] = True
+                u.current_weight += package.weight
+                u.current_vol_occupied += np.prod(package.dimensions)
 
                 return True, space.start_corner, uid
         return False, None, None

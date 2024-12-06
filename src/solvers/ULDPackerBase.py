@@ -23,7 +23,7 @@ class ULDPackerBase:
         :param max_passes: The maximum number of packing passes. Defaults to 1.
         """
         self.ulds = ulds
-        self.prio_ulds = {}
+        self.prio_ulds = {u.id: False for u in ulds}
         self.packages = packages
         self.priority_spread_cost = priority_spread_cost
         self.max_passes = max_passes  # Set the max number of packing passes

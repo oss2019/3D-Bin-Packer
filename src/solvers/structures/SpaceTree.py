@@ -7,7 +7,6 @@ from itertools import permutations
 
 global_node_id = 1
 
-
 class SpaceTree:
     def __init__(
         self,
@@ -25,10 +24,10 @@ class SpaceTree:
     def _add_link(self, node1, node2):
         ov = node1.get_overlap(node2)
 
-        if not (node2, ov) in node1.overlaps:
+        if not (node2, ov) in node1.overlaps and ov is not None:
             node1.overlaps.append((node2, ov))
             print(f"Added link {node1.node_id} -> {node2.node_id}")
-        if not (node1, ov) in node2.overlaps:
+        if not (node1, ov) in node2.overlaps and ov is not None:
             node2.overlaps.append((node1, ov))
             print(f"Added link {node2.node_id} -> {node1.node_id}")
 
@@ -42,8 +41,7 @@ class SpaceTree:
 
     def _remove_unnecessary_children(self, node):
         if node.overlaps is None:
-            raise Exception(f"{node.node_id} overlaps is None")
-
+            raise RuntimeError(f"{node.node_id} overlaps is None")
         if node.overlaps == []:
             return
 
@@ -56,7 +54,7 @@ class SpaceTree:
 
         for nc in not_children:
             node.children.remove(nc)
-            print(f"Removed {c.node_id}")
+            print(f"Removed {nc.node_id}")
 
     def _set_internal_links(self, node):
         # Set internal overlaps (between children)
@@ -107,7 +105,7 @@ class SpaceTree:
 
     def place_package_in(self, node_to_divide: SpaceNode, package: Package):
         if not node_to_divide.is_leaf:
-            raise Exception(f"Dividing non leaf node {node_to_divide.node_id}")
+            raise RuntimeError(f"Dividing non leaf node {node_to_divide.node_id}")
 
         print(f" --- Dividing {node_to_divide.node_id} ---")
 
@@ -115,234 +113,61 @@ class SpaceTree:
         packed_space = SpaceNode(
             package_start_corner, package.rotation, self.minimum_dimension
         )
+        p = packed_space.get_overlap(node_to_divide)
 
         if packed_space.is_completely_inside(node_to_divide):
-            # Get possible children
-            children = node_to_divide.divide_into_subspaces(packed_space)
 
-            # print(f"    --- Assigning children to {node_to_divide.node_id} ---")
-            for c in children:
-                self._assign_node_id_and_parent(c, node_to_divide)
+            nodes_with_part_of_package = [(node_to_divide, p)]
+            node_without_part_of_package = []
 
-            node_to_divide.children = children
-            node_to_divide.is_leaf = False
-            print(f"{node_to_divide.node_id} is now not a leaf")
-
-            # Set internal overlaps (between current node)
-            # print(f"    --- Setting int_overlaps of {node_to_divide.node_id} ---")
-            self._set_internal_links(node_to_divide)
-
-            # print(f"    --- Removing children from {node_to_divide.node_id} ---")
-            # self._remove_unnecessary_children(node_to_divide)
-
-            if node_to_divide not in self.unidirectional_signalling_list:
-                self.unidirectional_signalling_list[node_to_divide] = []
-
-            self._add_neighbours_to_signalling_list(node_to_divide)
-
-            crossed_over_ext_node_list = []
-            not_crossed_over_ext_node_list = []
-
-            for ext_node, ext_overlaps in node_to_divide.overlaps:
-                package_crossed_over = packed_space.get_overlap(ext_node)
+            for node, _ in node_to_divide.overlaps:
+                package_crossed_over = packed_space.get_overlap(node)
                 if package_crossed_over is not None:
-                    crossed_over_ext_node_list.append((ext_node, package_crossed_over))
+                    nodes_with_part_of_package.append((node, package_crossed_over))
                 else:
-                    not_crossed_over_ext_node_list.append(ext_node)
+                    node_without_part_of_package.append(node)
 
-            for ext_node, package_crossed_over in crossed_over_ext_node_list:
-                if ext_node.is_leaf:
-                    ext_children = ext_node.divide_into_subspaces(package_crossed_over)
+            for node, package_crossed_over in nodes_with_part_of_package:
+                if node.is_leaf:
+                    children = node.divide_into_subspaces(package_crossed_over)
 
-                    # print(f"        --- Assigning children to {ext_node.node_id} ---")
-                    for ec in ext_children:
-                        self._assign_node_id_and_parent(ec, ext_node)
+                    # Fragment node into smaller children
+                    # print(f"        --- Assigning children to {node.node_id} ---")
+                    for ec in children:
+                        self._assign_node_id_and_parent(ec, node)
 
-                    ext_node.children = ext_children
-                    ext_node.is_leaf = False
-                    print(f"{ext_node.node_id} is now not a leaf")
 
-                    # Set internal overlaps (between children of ext node)
-                    # print(f"        --- Setting int_overlaps of {ext_node.node_id} ---")
-                    self._set_internal_links(ext_node)
+                    # Set children of node and set status to non-leaf
+                    # print(f"{node.node_id} is now not a leaf")
+                    node.children = children
+                    node.is_leaf = False
 
-                    # print(f"        --- Removing children from {ext_node.node_id} ---)
-                    # self._remove_unnecessary_children(ext_node)
+                    # Remove unnecessary children of node
+                    # print(f"        --- Removing children from {node.node_id} ---)
+                    self._remove_unnecessary_children(node)
 
-                    if ext_node not in self.unidirectional_signalling_list:
-                        self.unidirectional_signalling_list[ext_node] = []
+                    # Set internal overlaps (between children of node)
+                    # print(f"        --- Setting int_overlaps of {node.node_id} ---")
+                    self._set_internal_links(node)
 
-                    self._add_neighbours_to_signalling_list(ext_node)
+                    # Initialize signalling list
+                    if node not in self.unidirectional_signalling_list:
+                        self.unidirectional_signalling_list[node] = []
+
+                    # Populate signalling list with neighbours
+                    self._add_neighbours_to_signalling_list(node)
 
                 else:
-                    raise Exception(
-                        f"{node_to_divide.node_id} is a neighbour of non leaf {ext_node.node_id}?"
+                    raise RuntimeError(
+                        f"{node_to_divide.node_id} is a neighbour of non leaf {node.node_id}?"
                     )
 
+            # Perform the link updates from node to node
             self._perform_link_updates()
         else:
-            raise Exception(
+            raise RuntimeError(
                 f"Package {package.id} does not fit in {node_to_divide.node_id}"
             )
-
-    # def _check_and_add_link(self, node1, node2):
-    #     if not node1.is_leaf or not node2.is_leaf:
-    #         raise Exception(
-    #             f"Overlap detected between non-leaf nodes {node1.node_id} {node1.is_leaf} and {node2.node_id} {node2.is_leaf}"
-    #         )
-    #
-    #     if node1.node_id != node2.node_id:
-    #         # raise Exception(f"Overlap detected to itself {node1.node_id}")
-    #         overlap = node1.get_overlap(node2)
-    #
-    #         if (node1, overlap) not in node2.overlaps and (
-    #             node2,
-    #             overlap,
-    #         ) not in node1.overlaps:
-    #             if overlap is not None:
-    #                 node1.overlaps.append((node2, overlap))
-    #                 node2.overlaps.append((node1, overlap))
-    #                 print(f"Linked {node1.node_id} - {node2.node_id}")
-
-    # def _signal_neighbour_to_update_links(self, signalling_node, signalled_node):
-    #     if signalling_node.node_id == signalled_node.node_id:
-    #         return
-    #
-    #     for child in signalling_node.children:
-    #         if signalled_node.is_leaf:
-    #             print(
-    #                 f"{signalling_node.node_id} signalled {signalled_node.node_id} to connect to {child.node_id} "
-    #             )
-    #             self._check_and_add_link(child, signalled_node)
-    #             self._unlink_B_to_A(signalled_node, signalled_node)
-    #
-    #         else:
-    #             raise Exception(
-    #                 f"{signalling_node.node_id} trying to signal non leaf node {signalled_node.node_id}"
-    #             )
-
-    # def _signal_neighbours_children_to_update_links(
-    #     self, signalling_node, signalled_node
-    # ):
-    #     if signalling_node.node_id == signalled_node.node_id:
-    #         return
-    #
-    #     for child_1 in signalling_node.children:
-    #         if signalled_node.is_leaf:
-    #             raise Exception(
-    #                 f"{signalling_node.node_id} trying to signal leaf node {signalled_node.node_id} to update its children"
-    #             )
-    #         else:
-    #             for child_2 in signalled_node.children:
-    #                 print(
-    #                     f"{signalling_node.node_id} signalled {signalled_node.node_id}'s child {child_2.node_id} to connect to {child_1.node_id}"
-    #                 )
-    #                 self._check_and_add_link(child_1, child_2)
-
-    # def divide_node_into_children_v3(self, node_to_divide: SpaceNode, package: Package):
-    #     if not node_to_divide.is_leaf:
-    #         raise Exception(f"Dividing non leaf node {node_to_divide.node_id}")
-    #
-    #     print(f" --- Dividing {node_to_divide.node_id} ---")
-    #
-    #     package_start_corner = node_to_divide.start_corner
-    #     packed_space = SpaceNode(package_start_corner, package.rotation)
-    #
-    #     if packed_space.is_completely_inside(node_to_divide):
-    #         # Get possible children
-    #         children = node_to_divide.divide_into_subspaces(packed_space)
-    #
-    #         # print(f"    --- Assigning children to {node_to_divide.node_id} ---")
-    #         for c in children:
-    #             self._assign_node_id_and_parent(c, node_to_divide)
-    #
-    #         node_to_divide.children = children
-    #         node_to_divide.is_leaf = False
-    #
-    #         # Set internal overlaps (between current node)
-    #         # print(f"    --- Setting int_overlaps of {node_to_divide.node_id} ---")
-    #         self._set_internal_links(node_to_divide)
-    #
-    #         # print(f"    --- Removing children from {node_to_divide.node_id} ---")
-    #         self._remove_unnecessary_children(node_to_divide)
-    #
-    #         neighbour_list = []
-    #         for neighbour, ov in node_to_divide.overlaps:
-    #             if neighbour not in neighbour_list:
-    #                 neighbour_list.append(neighbour)
-    #
-    #         for neighbour in neighbour_list:
-    #             self._signal_neighbour_to_update_links(node_to_divide, neighbour)
-    #             self._unlink_B_to_A(node_to_divide, neighbour)
-    #
-    #         crossed_over_ext_node_list = []
-    #         not_crossed_over_ext_node_list = []
-    #
-    #         for ext_node, ext_overlaps in node_to_divide.overlaps:
-    #             package_crossed_over = packed_space.get_overlap(ext_node)
-    #             if package_crossed_over is not None:
-    #                 crossed_over_ext_node_list.append((ext_node, package_crossed_over))
-    #             else:
-    #                 not_crossed_over_ext_node_list.append(ext_node)
-    #
-    #         for ext_node, package_crossed_over in crossed_over_ext_node_list:
-    #             if ext_node.is_leaf:
-    #                 ext_children = ext_node.divide_into_subspaces(package_crossed_over)
-    #
-    #                 # print(f"        --- Assigning children to {ext_node.node_id} ---")
-    #                 for ec in ext_children:
-    #                     self._assign_node_id_and_parent(ec, ext_node)
-    #
-    #                 ext_node.children = ext_children
-    #                 ext_node.is_leaf = False
-    #                 print(f"{ext_node.node_id} is now not a leaf")
-    #
-    #                 # Set internal overlaps (between children of ext node)
-    #                 # print(f"        --- Setting int_overlaps of {ext_node.node_id} ---")
-    #                 self._set_internal_links(ext_node)
-    #
-    #                 # print(f"        --- Removing children from {ext_node.node_id} ---)
-    #                 self._remove_unnecessary_children(ext_node)
-    #
-    #                 e_neighbour_list = []
-    #                 for e_neighbour, e_ov in ext_node.overlaps:
-    #                     if e_neighbour not in e_neighbour_list:
-    #                         e_neighbour_list.append(e_neighbour)
-    #
-    #                 for e_neighbour in e_neighbour_list:
-    #                     if e_neighbour.is_leaf:
-    #                         self._signal_neighbour_to_update_links(
-    #                             ext_node, e_neighbour
-    #                         )
-    #                         self._unlink_B_to_A(ext_node, e_neighbour)
-    #                     else:
-    #                         self._signal_neighbours_children_to_update_links(
-    #                             ext_node, e_neighbour
-    #                         )
-    #                         self._unlink_B_to_A(e_neighbour, ext_node)
-    #                         self._unlink_B_to_A(ext_node, e_neighbour)
-    #
-    #             else:
-    #                 raise Exception(
-    #                     f"{node_to_divide.node_id} is a neighbour of non leaf {ext_node.node_id}?"
-    #                 )
-    #
-    #         for ext_node in not_crossed_over_ext_node_list:
-    #             if ext_node.is_leaf:
-    #                 self._signal_neighbour_to_update_links(node_to_divide, ext_node)
-    #                 self._unlink_B_to_A(node_to_divide, ext_node)
-    #             else:
-    #                 raise Exception(
-    #                     f"{node_to_divide.node_id} is a neighbour of non leaf {ext_node.node_id}?"
-    #                 )
-    #
-    #         node_to_divide.overlaps = None
-    #         for n, o in crossed_over_ext_node_list:
-    #             n.overlaps = None
-    #     else:
-    #         raise Exception(
-    #             f"Package {package.id} does not fit in {node_to_divide.node_id}"
-    #         )
 
     def search(self, package: Package, search_policy="bfs"):
         volume = np.prod(package.rotation)
@@ -430,7 +255,7 @@ class SpaceTree:
             for y in l_o_n:
                 if x != y:
                     if x.is_completely_inside(y):
-                        raise Exception(f"{x.node_id} is completely inside {y.node_id}")
+                        raise RuntimeError(f"{x.node_id} is completely inside {y.node_id}")
                     if y.is_completely_inside(x):
-                        raise Exception(f"{y.node_id} is completely inside {x.node_id}")
+                        raise RuntimeError(f"{y.node_id} is completely inside {x.node_id}")
         return list_of_spaces
