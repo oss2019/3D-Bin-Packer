@@ -77,7 +77,7 @@ class ULDPackerMixed(ULDPackerBasicOverlap):
                 key=lambda u: np.prod(u.dimensions),
                 reverse=True,
             ):
-                can_fit, orientation = self._try_pack_package(
+                can_fit = self._try_pack_package(
                     package,
                     uld,
                     space_find_policy="first_find",
@@ -87,13 +87,11 @@ class ULDPackerMixed(ULDPackerBasicOverlap):
                     packed = True
                     n_packs += 1
                     print(
-                        f"Packed Priority {package.id} in {uld.id}, with orientation {tuple(orientation)}, {n_packs} "
+                        f"Packed Priority {package.id} in {uld.id}, {n_packs} "
                     )
                     break
             if not packed:
                 self.unpacked_packages.append(package)
-            else:
-                self.packed_packages.append(package)
 
         ulds = sorted(
                 self.ulds,
@@ -111,7 +109,7 @@ class ULDPackerMixed(ULDPackerBasicOverlap):
                     reverse=False,
                 )
             for uld in ulds:
-                can_fit, orientation = self._try_pack_package(
+                can_fit = self._try_pack_package(
                     package,
                     uld,
                     space_find_policy="max_surface_area",
@@ -121,21 +119,17 @@ class ULDPackerMixed(ULDPackerBasicOverlap):
                     packed = True
                     n_packs += 1
                     print(
-                        f"Packed Economy {package.id} in {uld.id}, with orientation {tuple(orientation)}, {n_packs} "
+                        f"Packed Economy {package.id} in {uld.id}, {n_packs} "
                     )
                     break
             if not packed:
                 self.unpacked_packages.append(package)
-            else:
-                self.packed_packages.append(package)
-                economy_packages = economy_packages[1:]
 
         total_delay_cost = sum(pkg.delay_cost for pkg in self.unpacked_packages)
         priority_spread_cost = sum(
-            self.priority_spread_cost for is_prio_uld in self.prio_ulds if is_prio_uld
+            [self.priority_spread_cost if is_prio_uld else 0 for is_prio_uld in self.prio_ulds.values()]
         )
         total_cost = total_delay_cost + priority_spread_cost
-        logging.info(f"{total_delay_cost} + {priority_spread_cost} = {total_cost}")
 
         return (
             self.packed_positions,

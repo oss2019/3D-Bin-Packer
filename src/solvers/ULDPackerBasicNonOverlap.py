@@ -179,16 +179,10 @@ class ULDPackerBasicNonOverlap(ULDPackerBase):
                     break
             if not packed:
                 self.unpacked_packages.append(package)
-            else:
-                self.packed_packages.append(package)
 
         total_delay_cost = sum(pkg.delay_cost for pkg in self.unpacked_packages)
-        priority_spread_cost = self.priority_spread_cost * len(
-            {
-                uld_id
-                for _, uld_id, *_ in self.packed_positions
-                if any(p.id == _ and p.is_priority for p in self.packages)
-            }
+        priority_spread_cost = sum(
+            [self.priority_spread_cost if is_prio_uld else 0 for is_prio_uld in self.prio_ulds.values()]
         )
         total_cost = total_delay_cost + priority_spread_cost
 

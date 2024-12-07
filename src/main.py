@@ -169,7 +169,7 @@ def main(uld_file, package_file, output_dir):
     print(f"Packed Economy pkgs     : {sum(1 for p in packed_packages if not p.is_priority)}")
     print(f"Non-packed Economy pkgs : {sum(1 for p in unpacked_packages if not p.is_priority)}\n")
     print(f"ULDs used               : {sum(1 for u in ulds if u.current_weight > 0)}")
-    print(f"ULDs with priority pkgs : {sum(1 for x in ulds_with_prio if x)}")
+    print(f"ULDs with priority pkgs : {sum([1 if is_prio_uld else 0 for is_prio_uld in ulds_with_prio.values()])}")
     print(f"Priority pkgs per ULD   : {packer.count_priority_packages_in_uld()}\n")
     print(f"Total Weight Capacity   : {sum(u.weight_limit for u in ulds)}")
     print(f"Total Weight Used       : {sum(u.current_weight for u in ulds)}")

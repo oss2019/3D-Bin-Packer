@@ -99,7 +99,7 @@ class ULDPackerBase:
         :param uld: The ULD in which to attempt packing the package.
         :param space_find_policy: Policy to determine how to find available space (first_find, etc...).
         :param orientation_choose_policy: The policy to determine which orientation is chosen in the space.
-        :return: True, orientation, if the package was successfully packed, False, None, tuple otherwise.
+        :return: True if the package was successfully packed. False otherwise.
         """
         if package.weight + uld.current_weight > uld.weight_limit:
             return False, (None, None, None)  # Exceeds weight limit
@@ -136,9 +136,9 @@ class ULDPackerBase:
                     uld, position, orientation, package, space_index
                 )
                 package.rotation = orientation
-                return True, orientation
-
-            return False, (None, None, None)
+                self.packed_packages.append(package)
+                return True
+            return False
 
         if orientation_choose_policy == "first_find":
             # All orientations of the package are checked and the first one
@@ -174,9 +174,9 @@ class ULDPackerBase:
                         uld, position, orientation, package, space_index
                     )
                     package.rotation = orientation
-                    return True, orientation
-
-            return False, (None, None, None)
+                    self.packed_packages.append(package)
+                    return True
+            return False
 
         elif orientation_choose_policy == "min_volume":
             # All orientations of the package are checked and the space with
@@ -231,8 +231,9 @@ class ULDPackerBase:
                     uld, best_position, best_orientation, package, best_space_index
                 )
                 package.rotation = best_orientation
-                return True, best_orientation
-            return False, (None, None, None)
+                self.packed_packages.append(package)
+                return True
+            return False
 
         else:
             raise RuntimeError(

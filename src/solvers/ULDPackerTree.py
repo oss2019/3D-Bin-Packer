@@ -159,7 +159,7 @@ class ULDPackerTree(ULDPackerBase):
         # Calculate some statistics to print
         total_delay_cost = sum(pkg.delay_cost for pkg in self.unpacked_packages)
         priority_spread_cost = sum(
-            self.priority_spread_cost for is_prio_uld in self.prio_ulds if is_prio_uld
+            [self.priority_spread_cost if is_prio_uld else 0 for is_prio_uld in self.prio_ulds.values()]
         )
         total_cost = total_delay_cost + priority_spread_cost
 

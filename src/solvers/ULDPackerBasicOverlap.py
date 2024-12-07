@@ -212,7 +212,7 @@ class ULDPackerBasicOverlap(ULDPackerBase):
                 key=lambda u: np.prod(u.dimensions),
                 reverse=True,
             ):
-                can_fit, orientation = self._try_pack_package(
+                can_fit = self._try_pack_package(
                     package,
                     uld,
                     space_find_policy="first_find",
@@ -225,8 +225,6 @@ class ULDPackerBasicOverlap(ULDPackerBase):
                     break
             if not packed:
                 self.unpacked_packages.append(package)
-            else:
-                self.packed_packages.append(package)
 
         for package in economy_packages:
             packed = False
@@ -235,7 +233,7 @@ class ULDPackerBasicOverlap(ULDPackerBase):
                 key=lambda u: (1 - u.current_weight / u.weight_limit),
                 reverse=False,
             ):
-                can_fit, orientation = self._try_pack_package(
+                can_fit = self._try_pack_package(
                     package,
                     uld,
                     space_find_policy="max_surface_area",
@@ -248,12 +246,10 @@ class ULDPackerBasicOverlap(ULDPackerBase):
                     break
             if not packed:
                 self.unpacked_packages.append(package)
-            else:
-                self.packed_packages.append(package)
 
         total_delay_cost = sum(pkg.delay_cost for pkg in self.unpacked_packages)
         priority_spread_cost = sum(
-            self.priority_spread_cost for is_prio_uld in self.prio_ulds if is_prio_uld
+            [self.priority_spread_cost if is_prio_uld else 0 for is_prio_uld in self.prio_ulds.values()]
         )
         total_cost = total_delay_cost + priority_spread_cost
 
