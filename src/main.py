@@ -10,7 +10,7 @@ from helpers.plot_images import generate_3d_plot
 from helpers.visualize import visualize_3d_packing
 import numpy as np
 
-NOPRINT = False
+NOPRINT = True
 
 
 # Read data from CSV
