@@ -115,7 +115,7 @@ class ULDPackerBase:
             # Update the state of the ULD if package fits
             if can_fit:
                 uld.current_weight += package.weight
-                uld.current_vol_occupied += np.prod(package.dimensions)
+                uld.current_vol_occupied += package.volume
                 if package.is_priority:
                     self.prio_ulds[uld.id] = True
 
@@ -153,7 +153,7 @@ class ULDPackerBase:
                 # If package fits, update the state of the ULD
                 if can_fit:
                     uld.current_weight += package.weight
-                    uld.current_vol_occupied += np.prod(package.dimensions)
+                    uld.current_vol_occupied += package.volume
                     if package.is_priority:
                         self.prio_ulds[uld.id] = True
 
@@ -210,7 +210,7 @@ class ULDPackerBase:
                 x, y, z = best_position
 
                 uld.current_weight += package.weight
-                uld.current_vol_occupied += np.prod(package.dimensions)
+                uld.current_vol_occupied += package.volume
 
                 if package.is_priority:
                     self.prio_ulds[uld.id] = True

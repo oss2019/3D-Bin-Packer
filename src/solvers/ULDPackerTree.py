@@ -59,7 +59,7 @@ class ULDPackerTree(ULDPackerBase):
                 if package.is_priority:
                     self.prio_ulds[uid] = True
                 u.current_weight += package.weight
-                u.current_vol_occupied += np.prod(package.dimensions)
+                u.current_vol_occupied += package.volume
 
                 return True, space.start_corner, uid
         return False, None, None
@@ -110,7 +110,7 @@ class ULDPackerTree(ULDPackerBase):
         # Get economy packages (sort if required)
         economy_packages = sorted(
             [pkg for pkg in self.packages if not pkg.is_priority],
-            key=lambda p: p.delay_cost / np.prod(p.dimensions),
+            key=lambda p: p.delay_cost / p.volume,
             reverse=True,
         )
 

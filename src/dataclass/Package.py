@@ -29,6 +29,7 @@ class Package:
         self.width = width  # Width of the package
         self.height = height  # Height of the package
         self.dimensions = np.array([length, width, height])  # Package dimensions as a numpy array
+        self.volume = length * width * height # Volume of the package
         self.weight = weight  # Weight of the package
         self.rotation = self.dimensions  # Rotation of the package (initially same as the dimensions)
         self.is_priority = is_priority  # Whether the package is a priority package

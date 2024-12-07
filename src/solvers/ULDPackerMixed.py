@@ -55,7 +55,7 @@ class ULDPackerMixed(ULDPackerBasicOverlap):
         # Get priority packages (sort if required)
         priority_packages = sorted(
             [pkg for pkg in self.packages if pkg.is_priority],
-            key=lambda p: (np.prod(p.dimensions)),
+            key=lambda p: (p.volume),
             reverse=True,
         )
 
@@ -63,8 +63,8 @@ class ULDPackerMixed(ULDPackerBasicOverlap):
         economy_packages = sorted(
             [pkg for pkg in self.packages if not pkg.is_priority],
             key=lambda p: (
-                p.delay_cost / np.prod(p.dimensions),
-                1 / p.weight * np.prod(p.dimensions),
+                p.delay_cost / p.volume,
+                1 / p.weight * p.volume,
             ),
             reverse=True,
         )

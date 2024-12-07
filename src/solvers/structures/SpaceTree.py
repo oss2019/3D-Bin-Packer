@@ -209,14 +209,12 @@ class SpaceTree:
         :param search_policy: The search policy ('bfs' or 'dfs').
         :return: The node where the package can be placed, or None.
         """
-        volume = np.prod(package.rotation)
-
         if search_policy.lower() == "bfs":
             to_search = [self.root]
             while to_search:
                 searching_node = to_search.pop(0)
                 if searching_node.is_leaf:
-                    if np.prod(searching_node.dimensions) >= volume:
+                    if np.prod(searching_node.dimensions) >= package.volume:
                         for rot in permutations(package.dimensions):
                             if (
                                 (
