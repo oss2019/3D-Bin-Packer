@@ -47,10 +47,11 @@ class ULDPackerMixedTree(ULDPackerTree):
             u.id: [(0, 0, 0, u.dimensions[0], u.dimensions[1], u.dimensions[2])]
             for u in self.ulds
         }
+        self.space_trees = None
         self.minimum_dimension = np.inf
 
         self.unpacked_packages = []
-        self.space_trees = [(SpaceTree(u, 40), u) for u in ulds]
+        self.space_trees = [(SpaceTree(u, self.minimum_dimension), u) for u in ulds]
 
 
     def _insert_into_space(self, space_node, package, uld):
@@ -93,9 +94,10 @@ class ULDPackerMixedTree(ULDPackerTree):
 
         :return: Tuple containing packed positions, packed packages, unpacked packages, priority ULDs, and total cost.
         """
-        n_packs = 1
-
         self.minimum_dimension = min([np.min(pkg.dimensions) for pkg in self.packages])
+        self.space_trees = [(SpaceTree(u, self.minimum_dimension), u) for u in ulds]
+
+        n_packs = 1
 
         # Get priority packages (sort if required)
         priority_packages = sorted(

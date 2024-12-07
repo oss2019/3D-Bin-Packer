@@ -29,9 +29,8 @@ class ULDPackerTree(ULDPackerBase):
             max_passes,
         )
         self.unpacked_packages = []
-        self.space_trees = [(SpaceTree(u, self.minimum_dimension), u) for u in ulds]
         self.prio_ulds = {}
-        self.space_trees.sort(key = lambda t: np.prod(t[1].dimensions), reverse = True)
+        self.space_trees = None
 
     def insert(self, package: Package):
         """
@@ -70,6 +69,10 @@ class ULDPackerTree(ULDPackerBase):
 
         :return: Tuple containing packed positions, packed packages, unpacked packages, priority ULDs, and total cost.
         """
+        self.minimum_dimension = min([np.min(pkg.dimensions) for pkg in self.packages])
+        self.space_trees = [(SpaceTree(u, self.minimum_dimension), u) for u in self.ulds]
+        self.space_trees.sort(key = lambda t: np.prod(t[1].dimensions), reverse = True)
+
         n_packs = 1
 
         # Get priority packages (sort if required)
