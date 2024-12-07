@@ -29,7 +29,7 @@ class ULDPackerTree(ULDPackerBase):
             max_passes,
         )
         self.unpacked_packages = []
-        self.space_trees = [(SpaceTree(u, 40), u) for u in ulds]
+        self.space_trees = [(SpaceTree(u, self.minimum_dimension), u) for u in ulds]
         self.prio_ulds = {}
 
     def insert(self, package: Package):
