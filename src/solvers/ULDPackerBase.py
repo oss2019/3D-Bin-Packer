@@ -4,6 +4,11 @@ from dataclass.Package import Package
 import numpy as np
 import itertools
 
+from docutils.utils.math.tex2unichar import space
+from orca.braille_generator import Space
+
+from structures.SpaceNode import SpaceNode
+
 
 # Define the ULDPacker class
 class ULDPackerBase:
@@ -91,6 +96,7 @@ class ULDPackerBase:
         uld: ULD,
         space_find_policy: str,
         orientation_choose_policy: str,
+        return_space: bool = False
     ):
         """
         Attempts to pack a given package into the specified ULD using the provided policies.
@@ -132,13 +138,23 @@ class ULDPackerBase:
                         orientation[2],
                     )
                 )
+                (x,y,z,l,b,h) = self.available_spaces[uld.id][space_index]
+
+                temp_space = SpaceNode(np.array([x, y, z]),np.array([l,b,h]), self.minimum_dimension)
+
                 self._update_available_spaces(
                     uld, position, orientation, package, space_index
                 )
                 package.rotation = orientation
                 self.packed_packages.append(package)
-                return True
-            return False
+                if return_space:
+                    return True, temp_space
+                else:
+                    return True
+            if return_space:
+                return False, None
+            else:
+                return False
 
         if orientation_choose_policy == "first_find":
             # All orientations of the package are checked and the first one
@@ -170,13 +186,23 @@ class ULDPackerBase:
                             orientation[2],
                         )
                     )
+                    (x, y, z, l, b, h) = self.available_spaces[uld.id][space_index]
+
+                    temp_space = SpaceNode(np.array([x, y, z]), np.array([l, b, h]), self.minimum_dimension)
+
                     self._update_available_spaces(
                         uld, position, orientation, package, space_index
                     )
                     package.rotation = orientation
                     self.packed_packages.append(package)
-                    return True
-            return False
+                    if return_space:
+                        return True, temp_space
+                    else:
+                        return True
+                if return_space:
+                    return False, None
+                else:
+                    return False
 
         elif orientation_choose_policy == "min_volume":
             # All orientations of the package are checked and the space with
@@ -227,13 +253,23 @@ class ULDPackerBase:
                         best_orientation[2],
                     )
                 )
+                (x, y, z, l, b, h) = self.available_spaces[uld.id][space_index]
+
+                temp_space = SpaceNode(np.array([x, y, z]), np.array([l, b, h]), self.minimum_dimension)
+
                 self._update_available_spaces(
-                    uld, best_position, best_orientation, package, best_space_index
+                    uld, position, orientation, package, space_index
                 )
-                package.rotation = best_orientation
+                package.rotation = orientation
                 self.packed_packages.append(package)
-                return True
-            return False
+                if return_space:
+                    return True, temp_space
+                else:
+                    return True
+            if return_space:
+                return False, None
+            else:
+                return False
 
         else:
             raise RuntimeError(
