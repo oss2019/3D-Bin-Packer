@@ -64,11 +64,11 @@ def format_output(
     output = "Packing Results:\n"
     output += "Packed Positions:\n"
     for package_id, uld_id, x, y, z, l, b, h in packed_positions:
-        output += f"Package {package_id} in ULD {uld_id} at position ({x}, {y}, {z}) with orientation {l}, {b}, {h}\n"
+        output += f"{package_id}, {uld_id}, {x}, {y}, {z}, {x+l}, {y+b}, {z+h}\n"
 
     output += "\nUnpacked Packages:\n"
     for pkg in unpacked_packages:
-        output += f"Package {pkg.id} (Weight: {pkg.weight}kg, Delay Cost: {pkg.delay_cost}, Priority: {pkg.is_priority})\n"
+        output += f"{pkg.id}, NONE, -1, -1, -1, -1, -1, -1\n"
         if pkg.is_priority:
             invalid_soln = True
 
@@ -125,7 +125,14 @@ def main(uld_file, package_file, output_dir):
 
     # Format and print output
     output = format_output(packed_positions, unpacked_packages, total_cost)
-    print(output)
+    # print(output)
+    #Function To Get desired output in a text File
+    def OutputToText():
+        with open("output.txt" , "w") as file:
+            print(f"{total_cost:.2f},{len(packed_packages)},{sum(1 for x in ulds_with_prio if x)}",file=file)
+            print(output,file=file)
+    #Calling that Function        
+    OutputToText()
 
     print("\nPacking Statistics:")
     print(f"Total packages          : {len(packages)}")
