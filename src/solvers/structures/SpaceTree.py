@@ -4,15 +4,20 @@ from .SpaceNode import SpaceNode
 import numpy as np
 from itertools import permutations
 
-
 global_node_id = 1
 
 class SpaceTree:
-    def __init__(
-        self,
-        uld: ULD,
-        minimum_dimension: int,
-    ):
+    """
+    Represents a hierarchical tree structure for managing spatial divisions within a container.
+    """
+
+    def __init__(self, uld: ULD, minimum_dimension: int):
+        """
+        Initializes the SpaceTree.
+
+        :param uld: The ULD (Unit Load Device) associated with the space tree.
+        :param minimum_dimension: The smallest allowable dimension for subdivisions.
+        """
         self.uld_no = uld.id
         self.uld_dimensions = uld.dimensions
         self.minimum_dimension = minimum_dimension
@@ -21,25 +26,41 @@ class SpaceTree:
         self.unidirectional_signalling_list = {}
         self.bidirectional_signalling_list = []
 
-    def _add_link(self, node1, node2):
-        ov = node1.get_overlap(node2)
+    def _add_link(self, node1: SpaceNode, node2: SpaceNode):
+        """
+        Adds a link between two nodes if they overlap.
 
-        if not (node2, ov) in node1.overlaps and ov is not None:
-            node1.overlaps.append((node2, ov))
-            print(f"Added link {node1.node_id} -> {node2.node_id}")
-        if not (node1, ov) in node2.overlaps and ov is not None:
-            node2.overlaps.append((node1, ov))
-            print(f"Added link {node2.node_id} -> {node1.node_id}")
+        :param node1: The first node.
+        :param node2: The second node.
+        """
+        overlap = node1.get_overlap(node2)
+        if overlap is not None:
+            if (node2, overlap) not in node1.overlaps:
+                node1.overlaps.append((node2, overlap))
+                print(f"Added link {node1.node_id} -> {node2.node_id}")
+            if (node1, overlap) not in node2.overlaps:
+                node2.overlaps.append((node1, overlap))
+                print(f"Added link {node2.node_id} -> {node1.node_id}")
 
-    def _assign_node_id_and_parent(self, c, parent):
+    def _assign_node_id_and_parent(self, child: SpaceNode, parent: SpaceNode):
+        """
+        Assigns a unique ID to a node and sets its parent.
+
+        :param child: The child node to update.
+        :param parent: The parent node.
+        """
         global global_node_id
-
-        c.parent = parent
-        c.node_id = global_node_id
-        print(f"Assigned ID {c.node_id} to child of {c.parent.node_id}")
+        child.parent = parent
+        child.node_id = global_node_id
+        print(f"Assigned ID {child.node_id} to child of {child.parent.node_id}")
         global_node_id += 1
 
-    def _remove_unnecessary_children(self, node):
+    def _remove_unnecessary_children(self, node: SpaceNode):
+        """
+        Removes child nodes that are completely covered by other overlaps.
+
+        :param node: The node whose children are to be evaluated.
+        """
         if node.overlaps is None:
             raise RuntimeError(f"{node.node_id} overlaps is None")
         if node.overlaps == []:
@@ -52,58 +73,68 @@ class SpaceTree:
                     not_children.append(c)
                     break
 
-        for nc in not_children:
-            node.children.remove(nc)
-            print(f"Removed {nc.node_id}")
+        for not_child in not_children:
+            node.children.remove(not_child)
+            print(f"Removed {not_child.node_id}")
 
-    def _set_internal_links(self, node):
-        # Set internal overlaps (between children)
+    def _set_internal_links(self, node: SpaceNode):
+        """
+        Establishes links between the children of a node based on overlaps.
+
+        :param node: The parent node.
+        """
         for c1 in node.children:
             for c2 in node.children:
-                if (
-                    c1 != c2
-                    and not c1.is_completely_inside(c2)
-                    and not c2.is_completely_inside(c1)
-                ):
+                if c1 != c2 and not c1.is_completely_inside(c2) and not c2.is_completely_inside(c1):
                     self._add_link(c1, c2)
 
-    def _add_neighbours_to_signalling_list(self, node):
-        for neighbour, ov in node.overlaps:
+    def _add_neighbours_to_signalling_list(self, node: SpaceNode):
+        """
+        Updates signalling lists with neighboring nodes based on overlaps.
+
+        :param node: The node to process.
+        """
+        for neighbour, overlap in node.overlaps:
             if neighbour in self.unidirectional_signalling_list:
                 if node in self.unidirectional_signalling_list[neighbour]:
                     self.unidirectional_signalling_list[neighbour].remove(node)
 
-                if (node, neighbour) not in self.bidirectional_signalling_list and (
-                    neighbour,
-                    node,
-                ) not in self.bidirectional_signalling_list:
+                if (node, neighbour) not in self.bidirectional_signalling_list and \
+                   (neighbour, node) not in self.bidirectional_signalling_list:
                     self.bidirectional_signalling_list.append((node, neighbour))
                     print(f"Signalling {node.node_id} - {neighbour.node_id} in BIDIR")
-
             elif neighbour not in self.unidirectional_signalling_list[node]:
                 self.unidirectional_signalling_list[node].append(neighbour)
                 print(f"Signalling {node.node_id} -> {neighbour.node_id} in UNIDIR")
 
     def _perform_link_updates(self):
-        for nodeA, _nodeBs in self.unidirectional_signalling_list.items():
-            for nodeB in _nodeBs:
-                for nA_child in nodeA.children:
-                    self._add_link(nodeB, nA_child)
+        """
+        Performs updates to links based on the signalling lists.
+        """
+        for nodeA, nodeBs in self.unidirectional_signalling_list.items():
+            for nodeB in nodeBs:
+                for child in nodeA.children:
+                    self._add_link(nodeB, child)
                 nodeB.remove_links_to(nodeA)
                 nodeA.remove_links_to(nodeB)
 
         for nodeA, nodeB in self.bidirectional_signalling_list:
             nodeA.remove_links_to(nodeB)
             nodeB.remove_links_to(nodeA)
-
-            for nA_child in nodeA.children:
-                for nB_child in nodeB.children:
-                    self._add_link(nA_child, nB_child)
+            for childA in nodeA.children:
+                for childB in nodeB.children:
+                    self._add_link(childA, childB)
 
         self.unidirectional_signalling_list = {}
         self.bidirectional_signalling_list = []
 
     def place_package_in(self, node_to_divide: SpaceNode, package: Package):
+        """
+        Places a package within the specified node by dividing the node.
+
+        :param node: The node to divide.
+        :param package: The package to place.
+        """
         if not node_to_divide.is_leaf:
             raise RuntimeError(f"Dividing non leaf node {node_to_divide.node_id}")
 
@@ -169,7 +200,15 @@ class SpaceTree:
                 f"Package {package.id} does not fit in {node_to_divide.node_id}"
             )
 
-    def search(self, package: Package, search_policy="bfs"):
+
+    def search(self, package: Package, search_policy: str = "bfs") -> SpaceNode:
+        """
+        Searches for a suitable node to place the package.
+
+        :param package: The package to place.
+        :param search_policy: The search policy ('bfs' or 'dfs').
+        :return: The node where the package can be placed, or None.
+        """
         volume = np.prod(package.rotation)
 
         if search_policy.lower() == "bfs":
@@ -199,33 +238,41 @@ class SpaceTree:
                 to_search.extend(searching_node.children)
         return None
 
-    def display_tree(self, node=None, depth=0):
+    def display_tree(self, node: SpaceNode = None, depth: int = 0):
         """
-        Display the space tree, including overlaps, for debugging purposes.
+        Displays the structure of the tree for debugging.
+
+        :param node: The current node (defaults to the root).
+        :param depth: The depth of the node for indentation.
         """
         if node is None:
             node = self.root
 
         indent = "  " * depth
-
         print(
-            f"{indent}Node: {node.node_id}, Start={node.start_corner}, Dimensions={node.dimensions}\n{indent}IsLeaf={node.is_leaf}, Overlaps={len(node.overlaps) if node.overlaps is not None else None}"
+            f"{indent}Node: {node.node_id}, Start={node.start_corner}, Dimensions={node.dimensions}\n"
+            f"{indent}IsLeaf={node.is_leaf}, Overlaps={len(node.overlaps) if node.overlaps is not None else None}"
         )
 
         for child in node.children:
             self.display_tree(child, depth + 1)
 
-    def create_list_of_spaces(self, search_policy="dfs"):
-        list_of_spaces = []
-        l_o_n = []
+    def create_list_of_spaces(self, search_policy: str = "dfs") -> list:
+        """
+        Generates a list of spaces in the tree.
 
+        :param search_policy: The search policy ('bfs' or 'dfs').
+        :return: A list of tuples representing spaces.
+        """
+        spaces = []
+        l_o_n = []
         if search_policy.lower() == "bfs":
             # Breadth-First Search
             to_search = [self.root]
             while to_search:
                 searching_node = to_search.pop(0)  # Dequeue
                 if searching_node.is_leaf:
-                    list_of_spaces.append(
+                    spaces.append(
                         tuple(
                             list(searching_node.start_corner)
                             + list(searching_node.dimensions)
@@ -240,7 +287,7 @@ class SpaceTree:
             while to_search:
                 searching_node = to_search.pop()  # Pop from the end (stack behavior)
                 if searching_node.is_leaf:
-                    list_of_spaces.append(
+                    spaces.append(
                         tuple(
                             list(searching_node.start_corner)
                             + list(searching_node.dimensions)
@@ -258,4 +305,4 @@ class SpaceTree:
                         raise RuntimeError(f"{x.node_id} is completely inside {y.node_id}")
                     if y.is_completely_inside(x):
                         raise RuntimeError(f"{y.node_id} is completely inside {x.node_id}")
-        return list_of_spaces
+        return spaces
