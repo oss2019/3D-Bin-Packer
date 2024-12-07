@@ -112,8 +112,8 @@ class ULDPackerMixed(ULDPackerBasicOverlap):
                 can_fit = self._try_pack_package(
                     package,
                     uld,
-                    space_find_policy="max_surface_area",
-                    orientation_choose_policy="min_volume",
+                    space_find_policy="first_find",
+                    orientation_choose_policy="first_find",
                 )
                 if can_fit:
                     packed = True

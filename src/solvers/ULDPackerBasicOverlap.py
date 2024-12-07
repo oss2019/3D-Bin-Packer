@@ -2,6 +2,8 @@ from typing import List, Tuple
 from dataclass.ULD import ULD
 from dataclass.Package import Package
 import numpy as np
+from orca.orca_platform import package
+
 from .ULDPackerBase import ULDPackerBase
 
 SIZE_BOUND = 5000
@@ -161,27 +163,27 @@ class ULDPackerBasicOverlap(ULDPackerBase):
                 # Down full
                 space6 = [ax, ay, z + height, al, aw, ah - (z + height - az)]
 
-                if y + width < ay + aw and all(v != 0 for v in space1[3::]):
+                if y + width < ay + aw and all(v >= self.minimum_dimension for v in space1[3::]):
                     updated_spaces.append(space1)
                     # print(f"Appending {space1}")
 
-                if y > ay and all(v != 0 for v in space2[3::]):
+                if y > ay and all(v >= self.minimum_dimension for v in space2[3::]):
                     updated_spaces.append(space2)
                     # print(f"Appending {space2}")
 
-                if x > ax and all(v != 0 for v in space3[3::]):
+                if x > ax and all(v >= self.minimum_dimension for v in space3[3::]):
                     updated_spaces.append(space3)
                     # print(f"Appending {space3}")
 
-                if x + length < ax + al and all(v != 0 for v in space4[3::]):
+                if x + length < ax + al and all(v >= self.minimum_dimension for v in space4[3::]):
                     updated_spaces.append(space4)
                     # print(f"Appending {space4}")
 
-                if z > az and all(v != 0 for v in space5[3::]):
+                if z > az and all(v >= self.minimum_dimension for v in space5[3::]):
                     updated_spaces.append(space5)
                     # print(f"Appending {space5}")
 
-                if z + height < az + ah and all(v != 0 for v in space6[3::]):
+                if z + height < az + ah and all(v >= self.minimum_dimension for v in space6[3::]):
                     updated_spaces.append(space6)
                     # print(f"Appending {space6}")
 
@@ -192,6 +194,8 @@ class ULDPackerBasicOverlap(ULDPackerBase):
 
     def pack(self):
         n_packs = 0
+
+        self.minimum_dimension = min([np.min(p.dimensions) for p in self.packages])
 
         priority_packages = sorted(
             [pkg for pkg in self.packages if pkg.is_priority],
@@ -236,8 +240,8 @@ class ULDPackerBasicOverlap(ULDPackerBase):
                 can_fit = self._try_pack_package(
                     package,
                     uld,
-                    space_find_policy="max_surface_area",
-                    orientation_choose_policy="min_volume",
+                    space_find_policy="first_find",
+                    orientation_choose_policy="first_find",
                 )
                 if can_fit:
                     packed = True
