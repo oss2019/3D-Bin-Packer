@@ -5,7 +5,6 @@ import numpy as np
 import itertools
 from .structures.SpaceNode import SpaceNode
 
-
 # Define the ULDPacker class
 class ULDPackerBase:
     def __init__(

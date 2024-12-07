@@ -153,7 +153,7 @@ def main(uld_file, package_file, output_dir):
     # Actual output to text file
     def OutputToText():
         with open(f"{output_dir}/output.txt" , "w") as file:
-            print(f"{int(total_cost)},{len(packed_packages)},{sum(1 for x in ulds_with_prio if x)}",file=file)
+            print(f"{int(total_cost)},{len(packed_packages)},{sum([1 if is_prio_uld else 0 for is_prio_uld in ulds_with_prio.values()])}",file=file)
             print(output,file=file)
 
     OutputToText()

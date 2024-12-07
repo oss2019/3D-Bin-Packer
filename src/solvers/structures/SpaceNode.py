@@ -71,7 +71,7 @@ class SpaceNode:
         # Check if there is an overlap
         if np.all(overlap_start < overlap_end):
             overlap_dimensions = overlap_end - overlap_start
-            return SpaceNode(overlap_start, overlap_dimensions, 40)
+            return SpaceNode(overlap_start, overlap_dimensions, self.minimum_dimension)
         else:
             # No overlap, return None or raise an exception as needed
             return None
@@ -217,7 +217,7 @@ class SpaceNode:
             return
 
         # Check if the overlap is feasible
-        if all(dim < 40 for dim in overlap.dimensions):
+        if all(dim < self.minimum_dimension for dim in overlap.dimensions):
             # Shrink both nodes to remove the overlap
             self.shrink_to_avoid_overlap(other)
         else:
@@ -229,7 +229,7 @@ class SpaceNode:
 
         :return True if all dimensions are greater than or equal to minimum_dimension, False otherwise.
         """
-        return all(v >= 40 for v in self.dimensions)
+        return all(v >= self.minimum_dimension for v in self.dimensions)
 
     def __eq__(self, other):
         """
