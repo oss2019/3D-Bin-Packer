@@ -6,7 +6,7 @@ from .ULDPackerBase import ULDPackerBase
 from .structures.SpaceTree import SpaceTree
 
 
-class ULDPackerMixedTree(ULDPackerBase):
+class ULDPackerMixedTree(ULDPackerTree, ULDPackerMixed):
     def __init__(
         self,
         ulds: List[ULD],
