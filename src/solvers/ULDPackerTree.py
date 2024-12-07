@@ -4,7 +4,7 @@ from dataclass.Package import Package
 import numpy as np
 from .ULDPackerBase import ULDPackerBase
 from .structures.SpaceTree import SpaceTree
-
+import copy
 
 class ULDPackerTree(ULDPackerBase):
     def __init__(
@@ -31,6 +31,7 @@ class ULDPackerTree(ULDPackerBase):
         self.unpacked_packages = []
         self.space_trees = [(SpaceTree(u, 40), u) for u in ulds]
         self.prio_ulds = {}
+        self.space_trees.sort(key = lambda t: np.prod(t[1].dimensions), reverse = True)
 
     def insert(self, package: Package):
         """
@@ -72,7 +73,12 @@ class ULDPackerTree(ULDPackerBase):
         n_packs = 1
 
         # Get priority packages (sort if required)
-        priority_packages = [pkg for pkg in self.packages if pkg.is_priority]
+        # priority_packages = [pkg for pkg in self.packages if pkg.is_priority]
+        priority_packages = sorted(
+            [pkg for pkg in self.packages if pkg.is_priority],
+            key=lambda p: (p.volume),
+            reverse=True,
+        )
 
         # Get economy packages (sort if required)
         economy_packages = sorted(

@@ -9,6 +9,7 @@ from dataclass.ULD import ULD
 from helpers.plot_images import generate_3d_plot
 from helpers.visualize import visualize_3d_packing
 import numpy as np
+import warnings
 
 NOPRINT = True
 
@@ -196,10 +197,11 @@ if __name__ == "__main__":
 Usage: python main.py <solver-type> <uld-file> <package-file> <output-dir>
 
 Supported Solver Types:
-  - BasicOverlap
-  - BasicNonOverlap (not working for Priority 100% packing),
+  - BasicOverlap (no guarantee of 100% priority packing)
+  - BasicNonOverlap (no guarantee of 100% priority packing),
   - Tree
-  - Mixed"""
+  - Preference
+  - MixedTree (Buggy, does not work)"""
         )
         exit(1)
 
@@ -213,6 +215,7 @@ Supported Solver Types:
         from solvers.ULDPackerPreference import ULDPackerPreference as ULDPacker
     elif sys.argv[1] == "MixedTree":
         from solvers.ULDPackerMixedTree import ULDPackerMixedTree as ULDPacker
+        warnings.warn("The implementation of MixedTree is buggy, it will not work for large datasets")
     else:
         print(
 """Supported Solver Types:
@@ -220,7 +223,7 @@ Supported Solver Types:
   - BasicNonOverlap (no guarantee of 100% priority packing),
   - Tree
   - Preference
-  - MixedTree"""
+  - MixedTree (Buggy, does not work)"""
         )
         exit(1)
 

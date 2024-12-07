@@ -221,7 +221,7 @@ class SpaceTree:
 
                 to_search.extend(searching_node.children)
 
-            raise Exception(f"Not found {node_to_search.start_corner, node_to_search.dimensions}")
+            # raise Exception(f"Not found {node_to_search.start_corner, node_to_search.dimensions}")
         else:
             raise RuntimeError("Invalid Search Policy")
 

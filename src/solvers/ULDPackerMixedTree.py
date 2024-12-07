@@ -137,7 +137,7 @@ class ULDPackerMixedTree(ULDPackerTree):
             if not packed:
                 self.unpacked_packages.append(package)
 
-        Pack the economy packages next
+        # Pack the economy packages next
         for package in economy_packages:
             packed, position, uldid = self.insert(package)
             if not packed:

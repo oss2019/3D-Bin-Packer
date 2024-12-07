@@ -9,7 +9,7 @@ usage() {
     echo "  - BasicNonOverlap (no guarantee of 100% priority packing)"
     echo "  - Tree"
     echo "  - Preference"
-    echo "  - MixedTree"
+    echo "  - MixedTree (Buggy, does not work)"
     exit 1
 }
 
