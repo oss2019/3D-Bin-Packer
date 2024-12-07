@@ -213,6 +213,8 @@ class SpaceTree:
             to_search = [self.root]
             while to_search:
                 searching_node = to_search.pop(0)
+                if np.prod(searching_node.dimensions) < package.volume:
+                    continue
                 if searching_node.is_leaf:
                     if np.prod(searching_node.dimensions) >= package.volume:
                         for rot in permutations(package.dimensions):
