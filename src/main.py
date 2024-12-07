@@ -10,7 +10,7 @@ from helpers.plot_images import generate_3d_plot
 from helpers.visualize import visualize_3d_packing
 import numpy as np
 
-NOPRINT = False
+NOPRINT = True
 
 
 # Read data from CSV
@@ -62,15 +62,30 @@ def read_data_from_csv(
 def format_output(
     packed_positions: List[Tuple], unpacked_packages: List[Package], total_cost: int
 ) -> str:
-    invalid_soln = False
-    output = "Packing Results:\n"
-    output += "Packed Positions:\n"
-    for package_id, uld_id, x, y, z, l, b, h in packed_positions:
-        output += f"{package_id}, {uld_id}, {x}, {y}, {z}, {x+l}, {y+b}, {z+h}\n"
+    """
+    Gives an output string to print
 
-    output += "\nUnpacked Packages:\n"
+    :param packed_positions: All packages positions in ULDs.
+    :param unpacked_packages: List of unpacked packages.
+    :param total_cost: Total delay + spread cost of packing.
+
+    :return: A string which is the output
+    """
+    invalid_soln = False
+    output =''
+
+
+    # output = "Packing Results:\n"
+    # output += "Packed Positions:\n"
+
+
+    for package_id, uld_id, x, y, z, l, b, h in packed_positions:
+        output += f"{package_id},{uld_id},{x},{y},{z},{x+l},{y+b},{z+h}\n"
+
+    # output += "\nUnpacked Packages:\n"
+
     for pkg in unpacked_packages:
-        output += f"{pkg.id}, NONE, -1, -1, -1, -1, -1, -1\n"
+        output += f"{pkg.id},NONE,-1,-1,-1,-1,-1,-1\n"
         if pkg.is_priority:
             invalid_soln = True
 
@@ -81,6 +96,7 @@ def format_output(
             + "\nSOLUTION IS INVALID AS PRIORITY PACKAGE WAS MISSED\n"
             + "!-!" * 17
         )
+        raise RuntimeError("Priority unpacked")
     return output
 
 
@@ -95,6 +111,8 @@ def main(uld_file, package_file, output_dir):
     # Initialize the ULDPacker with multiple passes
     packer = ULDPacker(ulds, packages, priority_spread_cost)
 
+    # This is to prevent printing. Set NOPRINT to True if
+    # you do not want to print logs while packing
     global NOPRINT
     import builtins
     original_print = builtins.print
@@ -111,6 +129,7 @@ def main(uld_file, package_file, output_dir):
         total_cost,
     ) = packer.pack()
 
+    # Reset print
     builtins.print = original_print
 
     # Validate the packing
@@ -125,37 +144,30 @@ def main(uld_file, package_file, output_dir):
     # Generate 3D plots for ULDs
     generate_3d_plot(packer, output_dir)  # Matplotlib
     visualize_3d_packing(packer)  # Pyvista
-    # visualize_individual_spaces(packer) """Do not use this with large datasets as there are lot of spaces"""
+    # visualize_individual_spaces(packer) # Do not use this with large datasets
 
-    # Format and print output
+    # Format and print output if required
     output = format_output(packed_positions, unpacked_packages, total_cost)
     # print(output)
-    #Function To Get desired output in a text File
+
+    # Actual output to text file
     def OutputToText():
-        with open("output.txt" , "w") as file:
-            print(f"{total_cost:.2f},{len(packed_packages)},{sum(1 for x in ulds_with_prio if x)}",file=file)
+        with open(f"{output_dir}/output.txt" , "w") as file:
+            print(f"{int(total_cost)},{len(packed_packages)},{sum(1 for x in ulds_with_prio if x)}",file=file)
             print(output,file=file)
-    #Calling that Function        
-    OutputToText()
+
+    OutputToText()
 
     print("\nPacking Statistics:")
     print(f"Total packages          : {len(packages)}")
     print(f"Packed packages         : {len(packed_packages)}")
     print(f"Non-packed packages     : {len(unpacked_packages)}\n")
     print(f"Total Priority packages : {sum(1 for p in packages if p.is_priority)}")
-    print(
-        f"Packed Priority pkgs    : {sum(1 for p in packed_packages if p.is_priority)}"
-    )
-    print(
-        f"Non-packed Priority pkgs: {sum(1 for p in unpacked_packages if p.is_priority)}\n"
-    )
+    print(f"Packed Priority pkgs    : {sum(1 for p in packed_packages if p.is_priority)}")
+    print(f"Non-packed Priority pkgs: {sum(1 for p in unpacked_packages if p.is_priority)}\n")
     print(f"Total Economy packages  : {sum(1 for p in packages if not p.is_priority)}")
-    print(
-        f"Packed Economy pkgs     : {sum(1 for p in packed_packages if not p.is_priority)}"
-    )
-    print(
-        f"Non-packed Economy pkgs : {sum(1 for p in unpacked_packages if not p.is_priority)}\n"
-    )
+    print(f"Packed Economy pkgs     : {sum(1 for p in packed_packages if not p.is_priority)}")
+    print(f"Non-packed Economy pkgs : {sum(1 for p in unpacked_packages if not p.is_priority)}\n")
     print(f"ULDs used               : {sum(1 for u in ulds if u.current_weight > 0)}")
     print(f"ULDs with priority pkgs : {sum(1 for x in ulds_with_prio if x)}")
     print(f"Priority pkgs per ULD   : {packer.count_priority_packages_in_uld()}\n")
@@ -163,7 +175,6 @@ def main(uld_file, package_file, output_dir):
     print(f"Total Weight Used       : {sum(u.current_weight for u in ulds)}")
     print(f"Total Volume Capacity   : {sum(np.prod(u.dimensions) for u in ulds)}")
     print(f"Total Volume Used       : {sum(u.current_vol_occupied for u in ulds)}")
-
     wasted_spaces = []
     wasted_weights = []
 
@@ -188,26 +199,22 @@ Usage: python main.py <solver-type> <uld-file> <package-file> <output-dir>
 Supported Solver Types:
   - BasicOverlap
   - BasicNonOverlap (not working for Priority 100% packing),
-  - Tree"""
+  - Tree
+  - Mixed"""
         )
         exit(1)
 
     if sys.argv[1] == "BasicOverlap":
         from solvers.ULDPackerBasicOverlap import ULDPackerBasicOverlap as ULDPacker
     elif sys.argv[1] == "BasicNonOverlap":
-        from solvers.ULDPackerBasicNonOverlap import (
-            ULDPackerBasicNonOverlap as ULDPacker,
-        )
+        from solvers.ULDPackerBasicNonOverlap import ULDPackerBasicNonOverlap as ULDPacker
     elif sys.argv[1] == "Tree":
         from solvers.ULDPackerTree import ULDPackerTree as ULDPacker
     elif sys.argv[1] == "Mixed":
         from solvers.ULDPackerMixed import ULDPackerMixed as ULDPacker
-
-        # run_bulk_insert_test_cases()
-        # exit()
     else:
         print(
-            """Supported Solver Types:
+"""Supported Solver Types:
   - BasicOverlap
   - BasicNonOverlap (not working for Priority 100% packing),
   - Tree

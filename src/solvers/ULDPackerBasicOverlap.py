@@ -39,7 +39,7 @@ class ULDPackerBasicOverlap(ULDPackerBase):
         self, uld: ULD, package: Package, orientation: Tuple[int], policy: str
     ) -> Tuple[bool, np.ndarray]:
         """
-        Finds available space in the specified ULD for the given package.
+        Finds available space in the specified ULD for the given package and given orientation.
 
         :param uld: The ULD in which to find space.
         :param package: The package to be packed.
