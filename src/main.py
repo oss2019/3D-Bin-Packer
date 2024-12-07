@@ -80,7 +80,7 @@ def format_output(
 
 
     for package_id, uld_id, x, y, z, l, b, h in packed_positions:
-        output += f"{package_id},{uld_id},{x},{y},{z},{x+l},{y+b},{z+h}\n"
+        output += f"{package_id},{uld_id},{int(x)},{int(y)},{int(z)},{int(x+l)},{int(y+b)},{int(z+h)}\n"
 
     # output += "\nUnpacked Packages:\n"
 
