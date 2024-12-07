@@ -10,7 +10,7 @@ from helpers.plot_images import generate_3d_plot
 from helpers.visualize import visualize_3d_packing
 import numpy as np
 
-NOPRINT = True
+NOPRINT = False
 
 
 # Read data from CSV
@@ -90,13 +90,12 @@ def format_output(
             invalid_soln = True
 
     if invalid_soln:
-        output += (
+        print(
             "\n"
             + "!-!" * 17
             + "\nSOLUTION IS INVALID AS PRIORITY PACKAGE WAS MISSED\n"
             + "!-!" * 17
         )
-        raise RuntimeError("Priority unpacked")
     return output
 
 
@@ -210,15 +209,18 @@ Supported Solver Types:
         from solvers.ULDPackerBasicNonOverlap import ULDPackerBasicNonOverlap as ULDPacker
     elif sys.argv[1] == "Tree":
         from solvers.ULDPackerTree import ULDPackerTree as ULDPacker
-    elif sys.argv[1] == "Mixed":
-        from solvers.ULDPackerMixed import ULDPackerMixed as ULDPacker
+    elif sys.argv[1] == "Preference":
+        from solvers.ULDPackerPreference import ULDPackerPreference as ULDPacker
+    elif sys.argv[1] == "MixedTree":
+        from solvers.ULDPackerMixedTree import ULDPackerMixedTree as ULDPacker
     else:
         print(
 """Supported Solver Types:
-  - BasicOverlap
-  - BasicNonOverlap (not working for Priority 100% packing),
+  - BasicOverlap (no guarantee of 100% priority packing)
+  - BasicNonOverlap (no guarantee of 100% priority packing),
   - Tree
-  - Mixed"""
+  - Preference
+  - MixedTree"""
         )
         exit(1)
 

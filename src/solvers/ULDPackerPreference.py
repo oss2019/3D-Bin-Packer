@@ -1,15 +1,15 @@
-import logging
+# import logging
+# logging.basicConfig(level=logging.INFO)
 from sys import stderr
 from typing import List, Tuple
 from dataclass.ULD import ULD
 from dataclass.Package import Package
 import numpy as np
 from .ULDPackerBasicOverlap import ULDPackerBasicOverlap
-logging.basicConfig(level=logging.INFO)
 SIZE_BOUND = 5000
 
 
-class ULDPackerMixed(ULDPackerBasicOverlap):
+class ULDPackerPreference(ULDPackerBasicOverlap):
     """
     A class for packing packages into ULDs using a mixed packing strategy.
 
@@ -98,7 +98,8 @@ class ULDPackerMixed(ULDPackerBasicOverlap):
                 key=lambda u: (1 - u.current_vol_occupied / np.prod(u.dimensions)),
                 reverse=False,
             )
-        # Pack the economy packages first
+
+        # Pack the economy packages next
         for package in economy_packages:
             packed = False
             filter(lambda u: (1 - u.current_weight / u.weight_limit) >= 35, ulds)

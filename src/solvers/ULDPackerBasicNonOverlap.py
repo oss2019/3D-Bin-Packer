@@ -25,7 +25,7 @@ class ULDPackerBasicNonOverlap(ULDPackerBase):
         )
 
     def _find_available_space(
-        self, uld: ULD, package: Package, policy: str
+        self, uld: ULD, package: Package, orientation: Tuple[int], policy: str
     ) -> Tuple[bool, np.ndarray]:
         length, width, height = package.dimensions
         best_position = None
@@ -108,9 +108,9 @@ class ULDPackerBasicNonOverlap(ULDPackerBase):
         return False, None, -1
 
     def _update_available_spaces(
-        self, uld: ULD, position: np.ndarray, package: Package, space_index: int
+        self, uld: ULD, position: np.ndarray, orientation: np.ndarray, package: Package, space_index: int
     ):
-        length, width, height = package.dimensions
+        length, width, height = orientation
         x, y, z = position
 
         ax, ay, az, al, aw, ah = self.available_spaces[uld.id][space_index]
@@ -174,7 +174,7 @@ class ULDPackerBasicNonOverlap(ULDPackerBase):
         for package in priority_packages + economy_packages:
             packed = False
             for uld in self.ulds:
-                if self._try_pack_package(package, uld, space_find_policy="first_find"):
+                if self._try_pack_package(package, uld, space_find_policy="first_find", orientation_choose_policy="no_rot"):
                     packed = True
                     break
             if not packed:
@@ -190,6 +190,6 @@ class ULDPackerBasicNonOverlap(ULDPackerBase):
             self.packed_positions,
             self.packed_packages,
             self.unpacked_packages,
-            self.uld_has_prio,
+            self.prio_ulds,
             total_cost,
         )

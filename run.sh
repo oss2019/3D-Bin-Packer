@@ -5,10 +5,11 @@ usage() {
     echo "Usage: $0 <solver-type> <uld-file> <package-file> <output-dir>"
     echo ""
     echo "Supported Solver Types:"
-    echo "  - BasicOverlap"
-    echo "  - BasicNonOverlap (not working for Priority 100% packing)"
+    echo "  - BasicOverlap (no guarantee of 100% priority packing)"
+    echo "  - BasicNonOverlap (no guarantee of 100% priority packing)"
     echo "  - Tree"
-    echo "  - Mixed"
+    echo "  - Preference"
+    echo "  - MixedTree"
     exit 1
 }
 
@@ -50,7 +51,7 @@ OUTPUT_DIR=$4
 mkdir -p "$OUTPUT_DIR"
 
 # Validate solver type
-if [[ "$SOLVER_TYPE" != "BasicOverlap" && "$SOLVER_TYPE" != "BasicNonOverlap" && "$SOLVER_TYPE" != "Tree" && "$SOLVER_TYPE" != "Mixed" ]]; then
+if [[ "$SOLVER_TYPE" != "BasicOverlap" && "$SOLVER_TYPE" != "BasicNonOverlap" && "$SOLVER_TYPE" != "Tree" && "$SOLVER_TYPE" != "Preference" && "$SOLVER_TYPE" != "MixedTree" ]]; then
     echo "Error: Invalid solver type '$SOLVER_TYPE'."
     usage
 fi

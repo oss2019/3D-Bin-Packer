@@ -2,7 +2,6 @@ from typing import List, Tuple
 from dataclass.ULD import ULD
 from dataclass.Package import Package
 import numpy as np
-from orca.orca_platform import package
 
 from .ULDPackerBase import ULDPackerBase
 
@@ -197,25 +196,9 @@ class ULDPackerBasicOverlap(ULDPackerBase):
 
         self.minimum_dimension = min([np.min(p.dimensions) for p in self.packages])
 
-        priority_packages = sorted(
-            [pkg for pkg in self.packages if pkg.is_priority],
-            key=lambda p: p.volume,
-            reverse=True,
-        )
-
-        economy_packages = sorted(
-            [pkg for pkg in self.packages if not pkg.is_priority],
-            key=lambda p: (p.delay_cost / p.volume),
-            reverse=True,
-        )
-
-        for package in priority_packages:
+        for package in self.packages:
             packed = False
-            for uld in sorted(
-                self.ulds,
-                key=lambda u: np.prod(u.dimensions),
-                reverse=True,
-            ):
+            for uld in self.ulds:
                 can_fit = self._try_pack_package(
                     package,
                     uld,
@@ -226,27 +209,6 @@ class ULDPackerBasicOverlap(ULDPackerBase):
                     packed = True
                     n_packs += 1
                     print(f"Packed Priority {package.id} in {uld.id}, {n_packs}")
-                    break
-            if not packed:
-                self.unpacked_packages.append(package)
-
-        for package in economy_packages:
-            packed = False
-            for uld in sorted(
-                self.ulds,
-                key=lambda u: (1 - u.current_weight / u.weight_limit),
-                reverse=False,
-            ):
-                can_fit = self._try_pack_package(
-                    package,
-                    uld,
-                    space_find_policy="first_find",
-                    orientation_choose_policy="first_find",
-                )
-                if can_fit:
-                    packed = True
-                    n_packs += 1
-                    print(f"Packed Economy {package.id} in {uld.id}, {n_packs}")
                     break
             if not packed:
                 self.unpacked_packages.append(package)

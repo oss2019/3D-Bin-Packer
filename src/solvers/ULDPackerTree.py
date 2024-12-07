@@ -29,7 +29,8 @@ class ULDPackerTree(ULDPackerBase):
             max_passes,
         )
         self.unpacked_packages = []
-        self.space_trees = [(SpaceTree(u, 40), u.id, u) for u in ulds]
+        self.space_trees = [(SpaceTree(u, 40), u) for u in ulds]
+        self.prio_ulds = {}
 
     def insert(self, package: Package):
         """
@@ -39,9 +40,7 @@ class ULDPackerTree(ULDPackerBase):
         :return: Tuple indicating success, position, and ULD ID.
         """
 
-        self.space_trees.sort(key = lambda s: (self.prio_ulds[s[2].id],
-                                               -np.prod(s[2].dimensions)))
-        for st, uid, u in self.space_trees:
+        for st, u in self.space_trees:
             space = st.search(package, search_policy="bfs")
             if space is not None:
                 st.place_package_in(
@@ -49,7 +48,7 @@ class ULDPackerTree(ULDPackerBase):
                     package,
                 )
                 print(f"\n{space.node_id} is for {package.id}\n")
-                print(f"Tree {uid}")
+                print(f"Tree {u.id}")
 
                 # # Use for debugging
                 # st.display_tree()
@@ -57,44 +56,12 @@ class ULDPackerTree(ULDPackerBase):
                 # input()
 
                 if package.is_priority:
-                    self.prio_ulds[uid] = True
+                    self.prio_ulds[u.id] = True
                 u.current_weight += package.weight
                 u.current_vol_occupied += package.volume
 
-                return True, space.start_corner, uid
+                return True, space.start_corner, u.id
         return False, None, None
-
-    def _find_available_space(
-        self, uld: ULD, package: Package, policy: str
-    ) -> Tuple[bool, np.ndarray]:
-        """
-        Find available space for a package in a ULD.
-
-        :param uld: ULD to search in.
-        :param package: Package to find space for.
-        :param policy: Search policy to use.
-        :return: Tuple indicating success and position.
-        """
-        pass
-
-    def _update_available_spaces(
-        self,
-        uld: ULD,
-        position: np.ndarray,
-        orientation: Tuple[int],
-        package: Package,
-        space_index: int,
-    ):
-        """
-        Update available spaces after placing a package.
-
-        :param uld: ULD being updated.
-        :param position: Position of the package.
-        :param orientation: Orientation of the package.
-        :param package: Package being placed.
-        :param space_index: Index of the space being updated.
-        """
-        pass
 
     def pack(self):
         """

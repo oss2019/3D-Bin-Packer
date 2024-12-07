@@ -128,7 +128,7 @@ class SpaceTree:
         self.unidirectional_signalling_list = {}
         self.bidirectional_signalling_list = []
 
-    def place_package_in(self, node_to_divide: SpaceNode, package: Package):
+    def place_package_in(self, node_to_divide: SpaceNode, package: Package, remove_unnecessary = True):
         """
         Places a package within the specified node by dividing the node.
 
@@ -175,7 +175,8 @@ class SpaceTree:
 
                     # Remove unnecessary children of node
                     # print(f"        --- Removing children from {node.node_id} ---)
-                    self._remove_unnecessary_children(node)
+                    if remove_unnecessary:
+                        self._remove_unnecessary_children(node)
 
                     # Set internal overlaps (between children of node)
                     # print(f"        --- Setting int_overlaps of {node.node_id} ---")
@@ -200,6 +201,31 @@ class SpaceTree:
                 f"Package {package.id} does not fit in {node_to_divide.node_id}"
             )
 
+    def search_for(self, node_to_search: SpaceNode, search_policy: str = "bfs") -> SpaceNode:
+        """
+        Searches for a given node in the tree.
+
+        :param node_to_search: Space Node to search for.
+        :param search_policy: The search policy ('bfs' or 'dfs').
+        :return: The node where the package can be placed, or None.
+        """
+        if search_policy.lower() == "bfs":
+            to_search = [self.root]
+            while to_search:
+                searching_node = to_search.pop(0)
+                if (
+                    (searching_node.start_corner ==  node_to_search.start_corner).all() and
+                    searching_node.is_completely_inside(node_to_search)
+                ):
+                    return searching_node
+
+                to_search.extend(searching_node.children)
+
+            raise Exception(f"Not found {node_to_search.start_corner, node_to_search.dimensions}")
+        else:
+            raise RuntimeError("Invalid Search Policy")
+
+        return None
 
     def search(self, package: Package, search_policy: str = "bfs") -> SpaceNode:
         """
@@ -237,72 +263,3 @@ class SpaceTree:
 
                 to_search.extend(searching_node.children)
         return None
-
-    def display_tree(self, node: SpaceNode = None, depth: int = 0):
-        """
-        Displays the structure of the tree for debugging.
-
-        :param node: The current node (defaults to the root).
-        :param depth: The depth of the node for indentation.
-        """
-        if node is None:
-            node = self.root
-
-        indent = "  " * depth
-        print(
-            f"{indent}Node: {node.node_id}, Start={node.start_corner}, Dimensions={node.dimensions}\n"
-            f"{indent}IsLeaf={node.is_leaf}, Overlaps={len(node.overlaps) if node.overlaps is not None else None}"
-        )
-
-        for child in node.children:
-            self.display_tree(child, depth + 1)
-
-    def create_list_of_spaces(self, search_policy: str = "dfs") -> list:
-        """
-        Generates a list of spaces in the tree.
-
-        :param search_policy: The search policy ('bfs' or 'dfs').
-        :return: A list of tuples representing spaces.
-        """
-        spaces = []
-        l_o_n = []
-        if search_policy.lower() == "bfs":
-            # Breadth-First Search
-            to_search = [self.root]
-            while to_search:
-                searching_node = to_search.pop(0)  # Dequeue
-                if searching_node.is_leaf:
-                    spaces.append(
-                        tuple(
-                            list(searching_node.start_corner)
-                            + list(searching_node.dimensions)
-                        )
-                    )
-                    l_o_n.append(searching_node)
-                to_search.extend(searching_node.children)  # Enqueue children
-
-        elif search_policy.lower() == "dfs":
-            # Depth-First Search
-            to_search = [self.root]
-            while to_search:
-                searching_node = to_search.pop()  # Pop from the end (stack behavior)
-                if searching_node.is_leaf:
-                    spaces.append(
-                        tuple(
-                            list(searching_node.start_corner)
-                            + list(searching_node.dimensions)
-                        )
-                    )
-                    l_o_n.append(searching_node)
-                to_search.extend(
-                    searching_node.children
-                )  # Push children onto the stack
-
-        for x in l_o_n:
-            for y in l_o_n:
-                if x != y:
-                    if x.is_completely_inside(y):
-                        raise RuntimeError(f"{x.node_id} is completely inside {y.node_id}")
-                    if y.is_completely_inside(x):
-                        raise RuntimeError(f"{y.node_id} is completely inside {x.node_id}")
-        return spaces

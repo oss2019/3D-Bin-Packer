@@ -3,11 +3,7 @@ from dataclass.ULD import ULD
 from dataclass.Package import Package
 import numpy as np
 import itertools
-
-from docutils.utils.math.tex2unichar import space
-from orca.braille_generator import Space
-
-from structures.SpaceNode import SpaceNode
+from .structures.SpaceNode import SpaceNode
 
 
 # Define the ULDPacker class
@@ -42,13 +38,14 @@ class ULDPackerBase:
         self.minimum_dimension = np.inf
 
     def _find_available_space(
-        self, uld: ULD, package: Package, policy: str
+        self, uld: ULD, package: Package, orientation: Tuple[int], policy: str
     ) -> Tuple[bool, np.ndarray]:
         """
         Finds an available space in the given ULD for the specified package.
 
         :param uld: The ULD in which to find space.
         :param package: The package to be packed.
+        :param orientation: Orientation of package
         :param policy: The packing policy to be used
         :return: Whether Space was found, and the coordinates of the space.
         """
