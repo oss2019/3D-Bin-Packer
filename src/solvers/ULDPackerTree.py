@@ -41,7 +41,7 @@ class ULDPackerTree(ULDPackerBase):
         """
 
         for st, u in self.space_trees:
-            space = st.search(package, search_policy="bfs")
+            space = st.search(package, search_policy="dfs", space_choose_policy="side_diff_vol_combo")
             if space is not None:
                 st.place_package_in(
                     space,
@@ -138,6 +138,12 @@ class ULDPackerTree(ULDPackerBase):
             [self.priority_spread_cost if is_prio_uld else 0 for is_prio_uld in self.prio_ulds.values()]
         )
         total_cost = total_delay_cost + priority_spread_cost
+
+        n_links = [st.n_links for st, u in self.space_trees]
+        num_links = np.sum(n_links)
+        import logging
+        logging.basicConfig(level=logging.INFO)
+        logging.info(f"NUM_LINK: {num_links}, {n_links}")
 
         return (
             self.packed_positions,

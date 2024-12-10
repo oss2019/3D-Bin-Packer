@@ -4,7 +4,7 @@ from .SpaceNode import SpaceNode
 import numpy as np
 from itertools import permutations
 
-global_node_id = 1
+global_node_id = 0
 
 class SpaceTree:
     """
@@ -25,6 +25,7 @@ class SpaceTree:
         self.root.node_id = 0
         self.unidirectional_signalling_list = {}
         self.bidirectional_signalling_list = []
+        self.n_links = 0
 
     def _add_link(self, node1: SpaceNode, node2: SpaceNode):
         """
@@ -38,9 +39,13 @@ class SpaceTree:
             if (node2, overlap) not in node1.overlaps:
                 node1.overlaps.append((node2, overlap))
                 print(f"Added link {node1.node_id} -> {node2.node_id}")
+                self.n_links += 1
+
             if (node1, overlap) not in node2.overlaps:
                 node2.overlaps.append((node1, overlap))
                 print(f"Added link {node2.node_id} -> {node1.node_id}")
+                self.n_links += 1
+
 
     def _assign_node_id_and_parent(self, child: SpaceNode, parent: SpaceNode):
         """
@@ -117,10 +122,12 @@ class SpaceTree:
                     self._add_link(nodeB, child)
                 nodeB.remove_links_to(nodeA)
                 nodeA.remove_links_to(nodeB)
+                self.n_links += 2
 
         for nodeA, nodeB in self.bidirectional_signalling_list:
             nodeA.remove_links_to(nodeB)
             nodeB.remove_links_to(nodeA)
+            self.n_links += 2
             for childA in nodeA.children:
                 for childB in nodeB.children:
                     self._add_link(childA, childB)
@@ -227,16 +234,22 @@ class SpaceTree:
 
         return None
 
-    def search(self, package: Package, search_policy: str = "bfs") -> SpaceNode:
+    def search(self, package: Package,
+               search_policy: str = "bfs",
+               space_choose_policy: str = "first_find") -> SpaceNode:
         """
         Searches for a suitable node to place the package.
 
         :param package: The package to place.
-        :param search_policy: The search policy ('bfs' or 'dfs').
+        :param search_policy: The search policy ('bfs', 'dfs').
+        :param space_choose_policy: The space choosing policy ('first_find', 'min_volume').
         :return: The node where the package can be placed, or None.
         """
         if search_policy.lower() == "bfs":
             to_search = [self.root]
+            best_node = None
+            best_diff = np.inf
+
             while to_search:
                 searching_node = to_search.pop(0)
                 if np.prod(searching_node.dimensions) < package.volume:
@@ -258,8 +271,81 @@ class SpaceTree:
                                     <= searching_node.end_corner[2]
                                 )
                             ):
-                                package.rotation = rot
-                                return searching_node
+                                if space_choose_policy == "first_find":
+                                    package.rotation = rot
+                                    return searching_node
+                                elif space_choose_policy == "min_volume":
+                                    if best_node is None or np.prod(searching_node.dimensions) < np.prod(best_node.dimensions):
+                                        package.rotation = rot
+                                        best_node = searching_node
+                                elif space_choose_policy == "least_diff_in_sides":
+                                    diff = np.sum(searching_node.dimensions - rot)
+                                    if best_node is None or diff < best_diff:
+                                        package.rotation = rot
+                                        best_node = searching_node
+                                        best_diff = diff
+                                else:
+                                    raise RuntimeError(f"Invalid space choose policy {space_choose_policy}")
 
                 to_search.extend(searching_node.children)
+
+            return best_node
+
+        elif search_policy.lower() == "dfs":
+            stack = [self.root]
+            best_node = None
+            best_diff = np.inf
+            best_score = np.inf
+
+            while stack:
+                searching_node = stack.pop()
+                if np.prod(searching_node.dimensions) < package.volume:
+                    continue
+                if searching_node.is_leaf:
+                    if np.prod(searching_node.dimensions) >= package.volume:
+                        for rot in permutations(package.dimensions):
+                            if (
+                                (
+                                    searching_node.start_corner[0] + rot[0]
+                                    <= searching_node.end_corner[0]
+                                )
+                                and (
+                                    searching_node.start_corner[1] + rot[1]
+                                    <= searching_node.end_corner[1]
+                                )
+                                and (
+                                    searching_node.start_corner[2] + rot[2]
+                                    <= searching_node.end_corner[2]
+                                )
+                            ):
+                                if space_choose_policy == "first_find":
+                                    package.rotation = rot
+                                    return searching_node
+                                elif space_choose_policy == "min_volume":
+                                    if best_node is None or np.prod(searching_node.dimensions) < np.prod(best_node.dimensions):
+                                        package.rotation = rot
+                                        best_node = searching_node
+                                elif space_choose_policy == "least_diff_in_sides":
+                                    diff = np.sum(searching_node.dimensions - rot)
+                                    if best_node is None or diff < best_diff:
+                                        package.rotation = rot
+                                        best_node = searching_node
+                                        best_diff = diff
+                                elif space_choose_policy == "side_diff_vol_combo":
+                                    score = (np.sum(searching_node.dimensions - rot) +
+                                            np.prod(searching_node.dimensions) - package.volume)
+                                    if best_node is None or score < best_score:
+                                        package.rotation = rot
+                                        best_node = searching_node
+                                        best_score = score
+                                else:
+                                    raise RuntimeError(f"Invalid space choose policy {space_choose_policy}")
+
+                # Add children to the stack in reverse order to maintain the correct order of processing
+                stack.extend(reversed(searching_node.children))
+
+            return best_node
+        else:
+            raise RuntimeError(f"Invalid search policy {search_policy}")
+
         return None
