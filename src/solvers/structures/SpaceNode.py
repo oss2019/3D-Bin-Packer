@@ -1,7 +1,6 @@
 from typing import List, Tuple
 import numpy as np
 
-
 class SpaceNode:
     """
     Represents a 3D space node for spatial subdivision and overlap management.
@@ -98,8 +97,11 @@ class SpaceNode:
             if o_node.node_id != other.node_id:
                 new_overlap_list.append((o_node, ov))
 
+
         self.overlaps = new_overlap_list
         print(f"{self.node_id} removed links to {other.node_id}")
+
+
 
     def divide_into_subspaces(self, box_overlap):
         """

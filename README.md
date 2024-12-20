@@ -56,6 +56,8 @@ Team 83 - FedEx Inter IIT Tech Meet
 python src/main.py Preference input/ulds.csv input/packages.csv output/
 ```
 
+* The PyVista window then opens up and displays the packing in each ULD
+
 ## Troubleshooting
 
 * If you encounter an error that says `Permission Denied`, mark the script as executable:

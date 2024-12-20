@@ -514,4 +514,3 @@ class ULDPackerMixedTree(ULDPackerTree):
             raise RuntimeError(
                 f"Invalid orientation choose policy  {orientation_choose_policy}"
             )
-

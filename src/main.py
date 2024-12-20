@@ -102,6 +102,8 @@ def format_output(
 
 # Main function
 def main(uld_file, package_file, output_dir):
+    global global_a_links
+    global global_r_links
     # Read the ULD and Package files
     ulds, packages = read_data_from_csv(uld_file, package_file)
 
@@ -143,7 +145,7 @@ def main(uld_file, package_file, output_dir):
 
     # Generate 3D plots for ULDs
     generate_3d_plot(packer, output_dir)  # Matplotlib
-    visualize_3d_packing(packer)  # Pyvista
+    # visualize_3d_packing(packer)  # Pyvista
     # visualize_individual_spaces(packer) # Do not use this with large datasets
 
     # Format and print output if required

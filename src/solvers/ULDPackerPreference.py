@@ -63,8 +63,7 @@ class ULDPackerPreference(ULDPackerBasicOverlap):
         economy_packages = sorted(
             [pkg for pkg in self.packages if not pkg.is_priority],
             key=lambda p: (
-                p.delay_cost / p.volume,
-                1 / p.weight * p.volume,
+                (p.delay_cost)**(2) / (p.volume),
             ),
             reverse=True,
         )
@@ -102,7 +101,7 @@ class ULDPackerPreference(ULDPackerBasicOverlap):
         # Pack the economy packages next
         for package in economy_packages:
             packed = False
-            filter(lambda u: (1 - u.current_weight / u.weight_limit) >= 35, ulds)
+            ulds = list(filter(lambda u: (1 - u.current_weight / u.weight_limit) >= 49, ulds))
             if len(ulds) < 1:
                 ulds = sorted(
                     self.ulds,

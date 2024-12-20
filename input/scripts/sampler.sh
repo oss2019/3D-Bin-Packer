@@ -18,11 +18,11 @@ usage() {
 # Parse command-line options
 while getopts "i:o:e:p:" opt; do
     case "$opt" in
-        i) input_file=$OPTARG ;;
-        o) output_file=$OPTARG ;;
-        e) num_economy=$OPTARG ;;
-        p) num_priority=$OPTARG ;;
-        *) usage ;;  # Call usage function for invalid options
+    i) input_file=$OPTARG ;;
+    o) output_file=$OPTARG ;;
+    e) num_economy=$OPTARG ;;
+    p) num_priority=$OPTARG ;;
+    *) usage ;; # Call usage function for invalid options
     esac
 done
 
@@ -40,7 +40,7 @@ fi
 
 # Check if both sampling arguments are provided
 if [[ -z "$num_economy" || -z "$num_priority" ]]; then
-    usage  # Call usage function if arguments are missing
+    usage # Call usage function if arguments are missing
 fi
 
 # Check if input file exists
@@ -51,9 +51,11 @@ fi
 
 # Sampling logic
 {
-    head -n 1 "$input_file"  # Print header
-    shuf -n "$num_economy" <(awk -F, '$6 == "Economy"' "$input_file")  # Sample economy
-    shuf -n "$num_priority" <(awk -F, '$6 == "Priority"' "$input_file")  # Sample priority
-} > "$output_file"
+    head -n 1 "$input_file"                                             # Print header
+    shuf -n "$num_economy" <(awk -F, '$6 == "Economy"' "$input_file")   # Sample economy
+    shuf -n "$num_priority" <(awk -F, '$6 == "Priority"' "$input_file") # Sample priority
+} >"$output_file"
+
+{ head -n 1 "$output_file" && tail -n +2 "$output_file" | shuf; } >temp.csv && mv temp.csv "$output_file"
 
 echo "Sampled $num_economy economy and $num_priority priority records into '$output_file'."
