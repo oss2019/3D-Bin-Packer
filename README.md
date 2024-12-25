@@ -1,5 +1,5 @@
-# FedEx-InterIITTech13
-Team 83 - FedEx Inter IIT Tech Meet
+# 3-D Bin Packer
+Initally created for the FedEx PS - Inter IIT Tech Meet 13.0
 
 
 ## Pre-requisites
