@@ -1,4 +1,4 @@
-# 3-D Bin Packer
+# 3D Bin Packer
 Initally created for the FedEx PS - Inter IIT Tech Meet 13.0
 
 
